@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit bootstrap="vendor/autoload.php"
+         colors="true">
+    <testsuites>
+        <testsuite name="Spawn Test Suite">
+            <directory suffix=".php">tests/</directory>
+            <directory suffix=".phpt">tests/libuv/</directory>
+        </testsuite>
+    </testsuites>
+
+    <filter>
+        <whitelist>
+            <directory suffix=".php">Spawn/</directory>
+            <exclude>
+                <file>./Spawn/Container.php</file>
+                <file>./Spawn/UV.php</file>
+                <file>./Spawn/UVFunctions.php</file>
+                <file>./Spawn/UVHandles.php</file>
+            </exclude>
+        </whitelist>
+    </filter>
+
+	<logging>
+        <log type="junit" target="build/report.junit.xml"/>
+        <log type="coverage-html" target="build/coverage"/>
+        <log type="coverage-text" target="build/coverage.txt"/>
+        <log type="coverage-clover" target="build/logs/clover.xml"/>
+    </logging>
+</phpunit>
