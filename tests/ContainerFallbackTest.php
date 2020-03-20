@@ -7,7 +7,7 @@ use Async\Spawn\Process;
 use Opis\Closure\SerializableClosure;
 use PHPUnit\Framework\TestCase;
 
-class ContainerTest extends TestCase
+class ContainerFallbackTest extends TestCase
 {
 	protected function setUp(): void
     {

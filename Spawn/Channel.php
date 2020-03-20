@@ -129,6 +129,14 @@ class Channel implements ChannelInterface
     /**
      * @codeCoverageIgnore
      */
+    public function flush(): bool
+    {
+        return \fflush($this->ipcOutput);;
+    }
+
+    /**
+     * @codeCoverageIgnore
+     */
     public function error($message): int
     {
         \fflush($this->ipcError);

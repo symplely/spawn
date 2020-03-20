@@ -77,6 +77,13 @@ interface ChannelInterface extends \IteratorAggregate
     public function write($message): int;
 
     /**
+     * Flushes the channel `STDOUT` output to device.
+     *
+     * @param mixed $message
+     */
+    public function flush(): bool;
+
+    /**
      * Post a error message to the channel `STDERR`.
      *
      * @param mixed $message

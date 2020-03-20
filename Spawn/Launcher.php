@@ -46,6 +46,9 @@ class Launcher implements LauncherInterface
     protected $showOutput = false;
     protected $isYield = false;
 
+    /** @var bool */
+    protected $status = null;
+
     protected $successCallbacks = [];
     protected $errorCallbacks = [];
     protected $timeoutCallbacks = [];
@@ -132,8 +135,10 @@ class Launcher implements LauncherInterface
                         $launcher->triggerSignal($signal);
                     }
                 } elseif ($stat === 0) {
+                    $launcher->status = true;
                     $launcher->triggerSuccess($launcher->isYield);
                 } elseif ($stat === 1) {
+                    $launcher->status = false;
                     $launcher->triggerError($launcher->isYield);
                 }
 
@@ -333,6 +338,9 @@ class Launcher implements LauncherInterface
 
     public function isRunning(): bool
     {
+        if ($this->process instanceof \UVProcess)
+            return  (bool) \uv_is_active($this->process) && !\is_bool($this->status);
+
         return $this->process->isRunning();
     }
 
@@ -352,11 +360,17 @@ class Launcher implements LauncherInterface
 
     public function isSuccessful(): bool
     {
+        if ($this->process instanceof \UVProcess)
+        return ($this->status === true);
+
         return $this->process->isSuccessful();
     }
 
     public function isTerminated(): bool
     {
+        if ($this->process instanceof \UVProcess)
+            return ($this->status === false);
+
         return $this->process->isTerminated();
     }
 
@@ -532,9 +546,6 @@ class Launcher implements LauncherInterface
         return $this;
     }
 
-    /**
-     * Call the progressCallbacks on the process output in real time.
-     */
     public function triggerProgress(string $type, string $buffer)
     {
         if (\count($this->progressCallbacks) > 0) {

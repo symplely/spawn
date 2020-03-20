@@ -7,7 +7,7 @@ use Async\Spawn\Channel;
 use Async\Spawn\ChannelInterface;
 use PHPUnit\Framework\TestCase;
 
-class ChannelTest extends TestCase
+class ChannelFallbackTest extends TestCase
 {
 	protected function setUp(): void
     {

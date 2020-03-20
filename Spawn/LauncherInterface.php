@@ -243,9 +243,50 @@ interface LauncherInterface
      */
     public static function uvLoop(\UVLoop $loop);
 
+    /**
+     * Call the progress callbacks on the child subprocess output in real time.
+     *
+     * @param string $type
+     * @param string $buffer
+     *
+     * @return void
+     */
+    public function triggerProgress(string $type, string $buffer);
+
+    /**
+     * Call the signal callbacks.
+     * - This feature is only available when using `libuv`.
+     *
+     * @param int $signal
+     *
+     * @return void
+     */
+    public function triggerSignal(int $signal = 0);
+
+    /**
+     * Call the success callbacks.
+     *
+     * @param bool $isYield
+     *
+     * @return mixed
+     */
     public function triggerSuccess(bool $isYield = false);
 
+    /**
+     * Call the error callbacks.
+     *
+     * @param bool $isYield
+     *
+     * @throws \Exception
+     */
     public function triggerError(bool $isYield = false);
 
+    /**
+     * Call the timeout callbacks.
+     *
+     * @param bool $isYield
+     *
+     * @return void
+     */
     public function triggerTimeout(bool $isYield = false);
 }

@@ -5,6 +5,8 @@
         "process",
         "parallel",
         "spawn",
+        "uv_spawn",
+        "libuv",
         "command",
         "task",
         "sub process",

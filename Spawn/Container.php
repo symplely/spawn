@@ -24,15 +24,17 @@ try {
 
     require_once $autoload;
 
+    $channel = new Channel;
+
     $task = Spawn::decodeTask($serializedClosure);
 
-    $output = $task(new Channel);
+    $output = $task($channel);
 
     $serializedOutput = \base64_encode(\serialize($output));
 
-    \fflush(\STDOUT);
-    \fwrite(\STDOUT, $serializedOutput);
-    \fflush(\STDOUT);
+    $channel->write($serializedOutput);
+    $channel->flush();
+    $channel->flush();
 
     exit(0);
 } catch (\Throwable $exception) {
@@ -40,7 +42,7 @@ try {
 
     $output = new SerializableException($exception);
 
-    \fwrite(\STDERR, \base64_encode(\serialize($output)));
+    $channel->error(\base64_encode(\serialize($output)));
 
     exit(1);
 }

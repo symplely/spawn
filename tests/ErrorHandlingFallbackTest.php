@@ -6,7 +6,7 @@ use Async\Spawn\Spawn;
 use Async\Spawn\SpawnError;
 use PHPUnit\Framework\TestCase;
 
-class ErrorHandlingTest extends TestCase
+class ErrorHandlingFallbackTest extends TestCase
 {
 	protected function setUp(): void
     {
