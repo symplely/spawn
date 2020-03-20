@@ -1,6 +1,6 @@
 {
     "name": "symplely/spawn",
-    "description": "An Process Manager offering Parallel and asynchronous PHP for Blocking I/O.",
+    "description": "An simply `uv_spawn` wrapper API to execute and manage sub-processes, parallel/asynchronous PHP for Blocking I/O.",
     "keywords": [
         "process",
         "parallel",
