@@ -242,4 +242,10 @@ interface LauncherInterface
      * @return void
      */
     public static function uvLoop(\UVLoop $loop);
+
+    public function triggerSuccess(bool $isYield = false);
+
+    public function triggerError(bool $isYield = false);
+
+    public function triggerTimeout(bool $isYield = false);
 }
