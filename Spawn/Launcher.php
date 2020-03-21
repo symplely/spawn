@@ -287,10 +287,19 @@ class Launcher implements LauncherInterface
         $this->process = null;
     }
 
+    protected function yieldRun()
+    {
+        yield \uv_run(self::$uv, \UV::RUN_DEFAULT);
+
+        return $this->getLast();
+    }
+
     public function wait($waitTimer = 1000, bool $useYield = false)
     {
-
         if ($this->process instanceof \UVProcess) {
+            if ($this->isYield || $useYield)
+                return $this->yieldRun();
+
             \uv_run(self::$uv, \UV::RUN_DEFAULT);
             return $this->getLast();
         } else {
@@ -387,7 +396,7 @@ class Launcher implements LauncherInterface
     protected function display($buffer = null)
     {
         if ($this->showOutput) {
-            \printf('%s', $this->realDecoded($buffer));
+            \printf('%s', \htmlspecialchars((string) $this->realDecoded($buffer), ENT_COMPAT, 'UTF-8'));
         }
     }
 

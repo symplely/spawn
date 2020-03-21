@@ -32,8 +32,8 @@ try {
 
     $serializedOutput = \base64_encode(\serialize($output));
 
-    $channel->write($serializedOutput);
     $channel->flush();
+    $channel->write($serializedOutput);
     $channel->flush();
 
     exit(0);
