@@ -130,6 +130,7 @@ class Launcher implements LauncherInterface
 
                 if ($signal) {
                     if ($signal === \UV::SIGABRT) {
+                        $launcher->status = 'timeout';
                         $launcher->triggerTimeout($launcher->isYield);
                     } else {
                         $launcher->triggerSignal($signal);
@@ -150,7 +151,6 @@ class Launcher implements LauncherInterface
                 }
 
                 $launcher->flush();
-                \uv_run($launcher::$uv);
             }
         };
 
@@ -387,20 +387,6 @@ class Launcher implements LauncherInterface
         return $this->process->isRunning();
     }
 
-    public function displayOn(): LauncherInterface
-    {
-        $this->showOutput = true;
-
-        return $this;
-    }
-
-    public function displayOff(): LauncherInterface
-    {
-        $this->showOutput = false;
-
-        return $this;
-    }
-
     public function isSuccessful(): bool
     {
         if ($this->process instanceof \UVProcess)
@@ -417,11 +403,18 @@ class Launcher implements LauncherInterface
         return $this->process->isTerminated();
     }
 
-    public function cleanUp($output = null)
+    public function displayOn(): LauncherInterface
     {
-        return \is_string($output)
-            ? \str_replace('Tjs=', '', $output)
-            : $output;
+        $this->showOutput = true;
+
+        return $this;
+    }
+
+    public function displayOff(): LauncherInterface
+    {
+        $this->showOutput = false;
+
+        return $this;
     }
 
     /**
@@ -432,6 +425,13 @@ class Launcher implements LauncherInterface
         if ($this->showOutput) {
             \printf('%s', \htmlspecialchars((string) $this->realDecoded($buffer), ENT_COMPAT, 'UTF-8'));
         }
+    }
+
+    public function cleanUp($output = null)
+    {
+        return \is_string($output)
+            ? \str_replace('Tjs=', '', $output)
+            : $output;
     }
 
     protected function decode($output, $errorSet = false)
@@ -615,6 +615,8 @@ class Launcher implements LauncherInterface
 
     public function triggerSuccess(bool $isYield = false)
     {
+        $this->status = true;
+
         if ($this->getResult() && !$this->getErrorOutput()) {
             $output = $this->lastResult;
         } elseif ($this->getErrorOutput()) {
@@ -634,6 +636,8 @@ class Launcher implements LauncherInterface
 
     public function triggerError(bool $isYield = false)
     {
+        $this->status = false;
+
         $exception = $this->resolveErrorOutput();
 
         if ($isYield)
@@ -649,6 +653,8 @@ class Launcher implements LauncherInterface
 
     public function triggerTimeout(bool $isYield = false)
     {
+        $this->status = 'timeout';
+
         if ($isYield)
             return $this->yieldTimeout();
 

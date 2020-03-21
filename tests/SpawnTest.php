@@ -153,9 +153,9 @@ class SpawnTest extends TestCase
         $p = Spawn::create(
             function () {
                 echo 'hello ';
-                usleep(10000);
+                usleep(1000);
                 echo 'child';
-                usleep(10000);
+                usleep(1000);
                 return 3;
             }
         );

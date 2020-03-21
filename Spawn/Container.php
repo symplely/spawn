@@ -6,25 +6,31 @@ use Async\Spawn\Channel;
 use Async\Spawn\Spawn;
 use Async\Spawn\SerializableException;
 
-try {
-    $autoload = $argv[1] ?? null;
-    $serializedClosure = $argv[2] ?? null;
+$autoload = $argv[1] ?? null;
+$serializedClosure = $argv[2] ?? null;
+$error = null;
 
-    if (!$autoload) {
-        throw new \InvalidArgumentException('No autoload provided in child process.');
-    }
+if (!$autoload) {
+    $error = new \InvalidArgumentException('No autoload provided in child process.');
+}
 
-    if (!\file_exists($autoload)) {
-        throw new \InvalidArgumentException("Could not find autoload in child process: {$autoload}");
-    }
+if (!\file_exists($autoload)) {
+    $error = new \InvalidArgumentException("Could not find autoload in child process: {$autoload}");
+}
 
-    if (!$serializedClosure) {
-        throw new \InvalidArgumentException('No valid closure was passed to the child process.');
-    }
+if (!$serializedClosure) {
+    $error = new \InvalidArgumentException('No valid closure was passed to the child process.');
+}
 
+if ($error === null) {
     require_once $autoload;
-
     $channel = new Channel;
+}
+
+try {
+    if ($error) {
+        throw $error;
+    }
 
     $task = Spawn::decodeTask($serializedClosure);
 
@@ -38,8 +44,6 @@ try {
 
     exit(0);
 } catch (\Throwable $exception) {
-    require_once __DIR__ . \DIRECTORY_SEPARATOR . 'SerializableException.php';
-
     $output = new SerializableException($exception);
 
     $channel->error(\base64_encode(\serialize($output)));
