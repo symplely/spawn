@@ -50,13 +50,10 @@ class SpawnTest extends TestCase
         $this->assertFalse($process->isSuccessful());
 
         $this->assertTrue($process->isRunning());
-        $this->assertNull($yield->next());
-        $this->assertEquals($counter, $yield->current());
+        $this->assertEquals(2, $yield->current());
         $this->assertFalse($process->isRunning());
         $this->assertTrue($process->isSuccessful());
-
         $process->close();
-       // $this->assertEquals(2, $counter);
     }
 /*
     public function testChainedProcesses()
