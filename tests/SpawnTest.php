@@ -24,9 +24,12 @@ class SpawnTest extends TestCase
             $counter = $output;
         });
 
+        $this->assertTrue($process->isRunning());
         spawn_run($process);
+        $this->assertFalse($process->isRunning());
         $this->assertTrue($process->isSuccessful());
 
+        $process->close();
         $this->assertEquals(2, $counter);
     }
 
@@ -40,16 +43,20 @@ class SpawnTest extends TestCase
             $counter = $output;
         });
 
-        $pause = $process->yielding();
+        $yield = $process->yielding();
         $this->assertEquals(0, $counter);
 
-        $this->assertTrue($pause instanceof \Generator);
+        $this->assertTrue($yield instanceof \Generator);
         $this->assertFalse($process->isSuccessful());
 
-        $this->assertNull($pause->current());
+        $this->assertTrue($process->isRunning());
+        $this->assertNull($yield->next());
+        $this->assertEquals($counter, $yield->current());
+        $this->assertFalse($process->isRunning());
         $this->assertTrue($process->isSuccessful());
 
-        //$this->assertEquals(2, $counter);
+        $process->close();
+       // $this->assertEquals(2, $counter);
     }
 /*
     public function testChainedProcesses()
@@ -77,14 +84,16 @@ class SpawnTest extends TestCase
         $counter = 0;
 
         $process = Spawn::create(function () {
-            sleep(10000);
-        }, 1)->timeout(function () use (&$counter) {
+            usleep(1000);
+        }, .5)->timeout(function () use (&$counter) {
             $counter += 1;
         });
 
         $process->run();
-        $this->assertTrue($process->isTimedOut());
+        //var_dump($process->isRunning());
+       // $this->assertTrue($process->isTimedOut());
 
+        $process->close();
         $this->assertEquals(1, $counter);
     }
 
@@ -98,10 +107,10 @@ class SpawnTest extends TestCase
             $counter += 1;
         });
 
-        $pause = $process->yielding();
+        $yield = $process->yielding();
         $this->assertFalse($process->isTimedOut());
 
-        $this->assertNull($pause->current());
+        $this->assertNull($yield->current());
         $this->assertTrue($process->isTimedOut());
         //$this->assertEquals(1, $counter);
     }
@@ -135,6 +144,8 @@ class SpawnTest extends TestCase
         });
         $this->expectOutputString('hello child');
         $process->displayOn()->run();
+
+        $process->close();
     }
 
     public function testGetResult()
@@ -151,6 +162,7 @@ class SpawnTest extends TestCase
         $p->run();
         $this->assertSame('hello child3', $p->getOutput());
         $this->assertSame(3, $p->getResult());
+        $p->close();
     }
 /*
     public function testGetOutputShell()
@@ -207,8 +219,8 @@ class SpawnTest extends TestCase
             $this->assertEquals(3, preg_match_all('/ERROR/', $error->getMessage(), $matches));
         });
 
-        $pause = $p->yielding();
-        $this->assertNull($pause->current());
+        $yield = $p->yielding();
+        $this->assertNull($yield->current());
     }
 
     public function testRestart()

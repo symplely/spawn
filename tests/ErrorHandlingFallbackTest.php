@@ -34,8 +34,8 @@ class ErrorHandlingFallbackTest extends TestCase
                 $this->assertRegExp('/test/', $e->getMessage());
             });
 
-        $pause = $process->yielding();
-        $this->assertNull($pause->current());
+        $yield = $process->yielding();
+        $this->assertNull($yield->current());
         $this->assertTrue($process->isTerminated());
     }
 
@@ -74,8 +74,8 @@ class ErrorHandlingFallbackTest extends TestCase
             throw new \Exception('test');
         });
 
-        $pause = $process->yielding();
-        $this->assertNull($pause->current());
+        $yield = $process->yielding();
+        $this->assertNull($yield->current());
     }
 
     public function testIt_throws_fatal_errors()

@@ -38,7 +38,7 @@ try {
 
     exit(0);
 } catch (\Throwable $exception) {
-    require_once __DIR__ . \DS . 'SerializableException.php';
+    require_once __DIR__ . \DIRECTORY_SEPARATOR . 'SerializableException.php';
 
     $output = new SerializableException($exception);
 

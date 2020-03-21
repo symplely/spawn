@@ -199,7 +199,7 @@ if (!\function_exists('spawn')) {
    * @return LauncherInterface
    * @throws LogicException In case the process is running, and not using `libuv` features.
    */
-  function spawn($executable, int $timeout = 300, $processChannel = null, ?bool $isYield = null): LauncherInterface
+  function spawn($executable, int $timeout = 60, $processChannel = null, ?bool $isYield = null): LauncherInterface
   {
     return Spawn::create($executable, $timeout, $processChannel, $isYield);
   }

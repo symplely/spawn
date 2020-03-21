@@ -123,7 +123,7 @@ class Launcher implements LauncherInterface
                 \uv_idle_stop($launcher->idle);
                 \uv_unref($launcher->idle);
 
-                if ($launcher->timer instanceof \UVTimer) {
+                if ($launcher->timer instanceof \UVTimer && \uv_is_active($launcher->timer)) {
                     \uv_timer_stop($launcher->timer);
                     \uv_unref($launcher->timer);
                 }
@@ -150,6 +150,7 @@ class Launcher implements LauncherInterface
                 }
 
                 $launcher->flush();
+                \uv_run($launcher::$uv);
             }
         };
 
@@ -192,7 +193,8 @@ class Launcher implements LauncherInterface
         $timer = null;
         if ($timeout) {
             $timer = \uv_timer_init($uvLoop);
-            \uv_timer_start($timer, $timeout * 1000, 0, function ($timer) use ($process) {
+            \uv_timer_start($timer, $timeout * 1000, 0, function ($timer) use ($process, $getId, &$launch) {
+                $launch[$getId]->status = 'timeout';
                 \uv_process_kill($process, \UV::SIGABRT);
                 \uv_timer_stop($timer);
                 \uv_unref($timer);
@@ -272,6 +274,34 @@ class Launcher implements LauncherInterface
         return yield from $this->run(true);
     }
 
+    /**
+     * Resets data related to the latest run of the process.
+     */
+    protected function flush()
+    {
+        self::$launcher[$this->id] = null;
+        unset(self::$launcher[$this->id]);
+
+        $this->timeout = null;
+        $this->id = null;
+        $this->pid = null;
+        $this->in = null;
+        $this->out = null;
+        $this->err = null;
+        $this->idle = null;
+        $this->timer = null;
+
+        $this->startTime = null;
+        $this->showOutput = false;
+        $this->isYield = false;
+
+        $this->successCallbacks = [];
+        $this->errorCallbacks = [];
+        $this->timeoutCallbacks = [];
+        $this->progressCallbacks = [];
+        $this->signalCallbacks = [];
+    }
+
     public function close()
     {
         if ($this->process instanceof Process) {
@@ -285,19 +315,21 @@ class Launcher implements LauncherInterface
         $this->processOutput = null;
         $this->processError = null;
         $this->process = null;
+        $this->status = null;
+        self::$uv = null;
     }
 
     protected function yieldRun()
     {
-        yield \uv_run(self::$uv, \UV::RUN_DEFAULT);
+        \uv_run(self::$uv, \UV::RUN_DEFAULT);
 
-        return $this->getLast();
+        return yield $this->getLast();
     }
 
     public function wait($waitTimer = 1000, bool $useYield = false)
     {
         if ($this->process instanceof \UVProcess) {
-            if ($this->isYield || $useYield)
+            if ($useYield)
                 return $this->yieldRun();
 
             \uv_run(self::$uv, \UV::RUN_DEFAULT);
@@ -338,7 +370,9 @@ class Launcher implements LauncherInterface
 
     public function isTimedOut(): bool
     {
-        if (empty($this->timeout) || !$this->process->isStarted()) {
+        if ($this->process instanceof \UVProcess) {
+            return ($this->status === 'timeout');
+        } elseif (empty($this->timeout) || !$this->process->isStarted()) {
             return false;
         }
 
@@ -348,7 +382,7 @@ class Launcher implements LauncherInterface
     public function isRunning(): bool
     {
         if ($this->process instanceof \UVProcess)
-            return  (bool) \uv_is_active($this->process) && !\is_bool($this->status);
+            return (bool) \uv_is_active($this->process) && !\is_bool($this->status);
 
         return $this->process->isRunning();
     }
@@ -370,7 +404,7 @@ class Launcher implements LauncherInterface
     public function isSuccessful(): bool
     {
         if ($this->process instanceof \UVProcess)
-        return ($this->status === true);
+            return ($this->status === true);
 
         return $this->process->isSuccessful();
     }
@@ -675,33 +709,5 @@ class Launcher implements LauncherInterface
         }
 
         return $exception;
-    }
-
-    /**
-     * Resets data related to the latest run of the process.
-     */
-    protected function flush()
-    {
-        self::$launcher[$this->id] = null;
-        unset(self::$launcher[$this->id]);
-
-        $this->timeout = null;
-        $this->id = null;
-        $this->pid = null;
-        $this->in = null;
-        $this->out = null;
-        $this->err = null;
-        $this->idle = null;
-        $this->timer = null;
-
-        $this->startTime = null;
-        $this->showOutput = false;
-        $this->isYield = false;
-
-        $this->successCallbacks = [];
-        $this->errorCallbacks = [];
-        $this->timeoutCallbacks = [];
-        $this->progressCallbacks = [];
-        $this->signalCallbacks = [];
     }
 }

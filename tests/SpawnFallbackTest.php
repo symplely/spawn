@@ -40,13 +40,13 @@ class SpawnFallbackTest extends TestCase
             $counter = $output;
         });
 
-        $pause = $process->yielding();
+        $yield = $process->yielding();
         $this->assertEquals(0, $counter);
 
-        $this->assertTrue($pause instanceof \Generator);
+        $this->assertTrue($yield instanceof \Generator);
         $this->assertFalse($process->isSuccessful());
 
-        $this->assertNull($pause->current());
+        $this->assertNull($yield->current());
         $this->assertTrue($process->isSuccessful());
 
         $this->assertEquals(2, $counter);
@@ -98,10 +98,10 @@ class SpawnFallbackTest extends TestCase
             $counter += 1;
         });
 
-        $pause = $process->yielding();
+        $yield = $process->yielding();
         $this->assertFalse($process->isTimedOut());
 
-        $this->assertNull($pause->current());
+        $this->assertNull($yield->current());
         $this->assertTrue($process->isTimedOut());
         $this->assertEquals(1, $counter);
     }
@@ -206,8 +206,8 @@ class SpawnFallbackTest extends TestCase
             $this->assertEquals(3, preg_match_all('/ERROR/', $error->getMessage(), $matches));
         });
 
-        $pause = $p->yielding();
-        $this->assertNull($pause->current());
+        $yield = $p->yielding();
+        $this->assertNull($yield->current());
     }
 
     public function testRestart()
