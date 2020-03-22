@@ -14,7 +14,6 @@ class SpawnTest extends TestCase
         Spawn::on();
     }
 
-/*
     public function testIt_can_handle_success()
     {
         $counter = 0;
@@ -32,6 +31,7 @@ class SpawnTest extends TestCase
         $this->assertEquals(2, $counter);
         $this->assertEquals(2, \spawn_output($process));
     }
+/*
     public function testIt_can_handle_success_yield()
     {
         $counter = 0;
