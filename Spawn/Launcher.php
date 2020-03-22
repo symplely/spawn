@@ -79,6 +79,11 @@ class Launcher implements LauncherInterface
         self::$launcher[$id] = $this;
     }
 
+    public function __destruct()
+    {
+        $this->close();
+    }
+
     public static function create(Process $process, int $id, int $timeout = 60, bool $isYield = false): LauncherInterface
     {
         return new self($process, $id, $timeout, null, null, null, null, null, $isYield);
@@ -151,6 +156,7 @@ class Launcher implements LauncherInterface
                 }
 
                 $launcher->flush();
+                \uv_run($launcher::$uv);
             }
         };
 
@@ -242,7 +248,6 @@ class Launcher implements LauncherInterface
 
             $this->pid = $this->process->getPid();
         }
-
 
         return $this;
     }

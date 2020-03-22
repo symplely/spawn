@@ -10,7 +10,7 @@ $ipc = new Channel();
 
 echo "Let's play, ";
 
-$process = Spawn::create(
+$process = \spawn(
     function (ChannelInterface $channel) {
         $channel->write('ping');
         echo $channel->read();
@@ -29,6 +29,7 @@ $process = Spawn::create(
 });
 
 $ipc->setHandle($process);
-$result = $process->run();
-echo $process->getOutput() . \PHP_EOL;
-echo $result;
+$result = \spawn_run($process);
+echo \spawn_output($process) . \PHP_EOL;
+echo \spawn_result($process) . \PHP_EOL;
+echo $result . \PHP_EOL;
