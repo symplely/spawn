@@ -18,7 +18,7 @@ class SpawnTest extends TestCase
     {
         $counter = 0;
 
-        $process = Spawn::create(function () {
+        $process = spawn(function () {
             return 2;
         })->then(function (int $output) use (&$counter) {
             $counter = $output;
@@ -28,11 +28,10 @@ class SpawnTest extends TestCase
         spawn_run($process);
         $this->assertFalse($process->isRunning());
         $this->assertTrue($process->isSuccessful());
-
-        $process->close();
         $this->assertEquals(2, $counter);
+        $this->assertEquals(2, \spawn_output($process));
     }
-
+/*
     public function testIt_can_handle_success_yield()
     {
         $counter = 0;
