@@ -6,7 +6,7 @@ jobs:
     strategy:
       matrix:
         operating-system: [ubuntu-latest]
-        php-versions: ['7.2', '7.4']
+        php-versions: ['7.2']
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -17,8 +17,8 @@ jobs:
           sudo apt-get install libuv1-dev php-pear
       - name: Build and install PHP-UV extension
         run: |
-          pecl channel-update pecl.php.net
-          pecl install uv-beta
+          sudo pecl channel-update pecl.php.net
+          sudo pecl install uv-beta
       - name: Setup PHP, with composer and extensions
         uses: shivammathur/setup-php@v2 #https://github.com/shivammathur/setup-php
         with:
