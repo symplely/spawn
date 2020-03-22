@@ -6,8 +6,8 @@ use Async\Spawn\Channel;
 use Async\Spawn\Spawn;
 use Async\Spawn\SerializableException;
 
-$autoload = $argv[1] ?? null;
-$serializedClosure = $argv[2] ?? null;
+$autoload = $argv[1] ? $argv[1] : null;
+$serializedClosure = $argv[2] ? $argv[2] : null;
 $error = null;
 
 if (!$autoload) {
