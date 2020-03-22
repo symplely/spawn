@@ -203,7 +203,7 @@ if (!\function_exists('spawn')) {
         $executable,
         int $timeout = 60,
         $processChannel = null,
-        bool $isYield = false
+        bool $isYield = null
     ): LauncherInterface {
         return Spawn::create($executable, $timeout, $processChannel, $isYield);
     }

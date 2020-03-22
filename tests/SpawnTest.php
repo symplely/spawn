@@ -14,24 +14,24 @@ class SpawnTest extends TestCase
         Spawn::on();
     }
 
+/*
     public function testIt_can_handle_success()
     {
         $counter = 0;
 
-        $process = spawn(function () {
+        $process = \spawn(function () {
             return 2;
         })->then(function (int $output) use (&$counter) {
             $counter = $output;
         });
 
         $this->assertTrue($process->isRunning());
-        spawn_run($process);
+        \spawn_run($process);
         $this->assertFalse($process->isRunning());
         $this->assertTrue($process->isSuccessful());
         $this->assertEquals(2, $counter);
         $this->assertEquals(2, \spawn_output($process));
     }
-/*
     public function testIt_can_handle_success_yield()
     {
         $counter = 0;

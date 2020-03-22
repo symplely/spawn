@@ -79,8 +79,12 @@ class Spawn
      * @return LauncherInterface
      * @throws LogicException In case the process is running, and not using `libuv` features.
      */
-    public static function create($task, int $timeout = 60, $input = null, ?bool $isYield = null): LauncherInterface
-    {
+    public static function create(
+        $task,
+        int $timeout = 60,
+        $input = null,
+        bool $isYield = null
+    ): LauncherInterface {
         if (!self::$isInitialized) {
             self::init();
         }
