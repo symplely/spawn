@@ -12,11 +12,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Install libuv and PHP build tools
-        run: 
-         sudo apt update
-         sudo apt-get install libuv1-dev php-pear
+        run: |
+          sudo apt update
+          sudo apt-get install libuv1-dev php-pear
       - name: Build and install PHP-UV extension
-        run: 
+        run:
           pecl channel-update pecl.php.net
           pecl install uv-beta
       - name: Setup PHP, with composer and extensions
