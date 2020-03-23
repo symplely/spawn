@@ -161,7 +161,6 @@ class Launcher implements LauncherInterface
                 }
 
                 $launcher->flush();
-                \uv_run($launcher::$uv, \UV::RUN_NOWAIT);
             }
         };
 
