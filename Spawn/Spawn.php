@@ -10,6 +10,11 @@ use Async\Spawn\Process;
 use Async\Spawn\LauncherInterface;
 use Opis\Closure\SerializableClosure;
 
+/**
+ * This class is responsible for _initializing_ and _detection_ of which routine is used
+ * for launching all processes, either using `uv_spawn` of **libuv** the default, or **PHP** builtin
+ * `proc_open` function as fallback, if **libuv** is not installed.
+ */
 class Spawn
 {
     /** @var bool */
@@ -41,6 +46,13 @@ class Spawn
     {
     }
 
+    /**
+     * Setup/initialize the `process` container, and namespaces for auto loading classes.
+     *
+     * @param string $autoload
+     *
+     * @return array
+     */
     public static function init(string $autoload = null)
     {
         if (!$autoload) {
@@ -199,6 +211,8 @@ class Spawn
     }
 
     /**
+     * Serialize callable, then encodes to produce MIME base64 structure.
+     *
      * @param callable $task
      *
      * @return string
@@ -213,6 +227,12 @@ class Spawn
     }
 
     /**
+     * Decodes a MIME base64 structure, then unserialize the callable.
+     *
+     * @param SerializableClosure|string $task
+     *
+     * @return callable
+     *
      * @codeCoverageIgnore
      */
     public static function decodeTask(string $task)
@@ -220,6 +240,11 @@ class Spawn
         return \Opis\Closure\unserialize(\base64_decode($task));
     }
 
+    /**
+     * Creates a PHP's process ID
+     *
+     * @return string
+     */
     public static function getId(): string
     {
         if (self::$myPid === null) {

@@ -234,16 +234,6 @@ interface LauncherInterface
     public function getPipeInput();
 
     /**
-     * Set UVLoop handle.
-     * - This feature is only available when using `libuv`.
-     *
-     * @param \UVLoop $loop
-     *
-     * @return void
-     */
-    public static function uvLoop(\UVLoop $loop);
-
-    /**
      * Call the progress callbacks on the child subprocess output in real time.
      *
      * @param string $type

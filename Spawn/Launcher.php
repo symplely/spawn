@@ -14,7 +14,6 @@ use Async\Spawn\Process;
 use Async\Spawn\SpawnError;
 use Async\Spawn\SerializableException;
 use Async\Spawn\LauncherInterface;
-use UVProcess;
 
 /**
  * Launcher runs a command/script/application/callable in an independent process.
@@ -34,7 +33,6 @@ class Launcher implements LauncherInterface
     protected $out;
     protected $err;
     protected $idle;
-    protected static $uv = null;
     protected $timer;
 
     protected $output;
@@ -57,6 +55,7 @@ class Launcher implements LauncherInterface
     protected $progressCallbacks = [];
     protected $signalCallbacks = [];
     protected static $launcher = [];
+    protected static $uv = null;
 
     private function __construct(
         $process,
@@ -162,7 +161,6 @@ class Launcher implements LauncherInterface
                 }
 
                 $launcher->flush();
-                \uv_run($launcher::$uv);
             }
         };
 
@@ -348,6 +346,7 @@ class Launcher implements LauncherInterface
         $this->processError = null;
         $this->process = null;
         $this->status = null;
+        $this->task = null;
         self::$uv = null;
     }
 
