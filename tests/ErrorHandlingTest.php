@@ -55,31 +55,6 @@ class ErrorHandlingTest extends TestCase
         $this->assertEquals('', $process->getOutput());
     }
 
-    public function testIt_throws_the_exception_if_no_catch_callback()
-    {
-        $this->expectException(\Exception::class);
-        $this->expectExceptionMessageRegExp('/test/');
-
-        $process = Spawn::create(function () {
-            throw new \Exception('test');
-        });
-
-        $process->run();
-    }
-
-    public function testIt_throws_the_exception_if_no_catch_callback_yield()
-    {
-        $this->expectException(\Exception::class);
-        $this->expectExceptionMessageRegExp('/test/');
-
-        $process = Spawn::create(function () {
-            throw new \Exception('test');
-        });
-
-        $yield = $process->yielding();
-        $this->assertNull($yield->current());
-    }
-
     public function testIt_throws_fatal_errors()
     {
         $this->expectException(\Error::class);
