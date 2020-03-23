@@ -22,7 +22,7 @@ class ChannelFallbackTest extends TestCase
             $channel->write('ping');
             echo $channel->read();
             echo $channel->read();
-            usleep(1000);
+            usleep(5000);
             return 9;
         }, 10, $ipc)
             ->progress(

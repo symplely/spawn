@@ -17,8 +17,7 @@ $process = \spawn(
         echo $channel->read();
         \usleep(1000);
         return 'The game!';
-    },
-    0
+    }
 )->progress(function ($type, $data) use ($ipc) {
     if ('ping' === $data) {
         $ipc->send('pang' . \PHP_EOL);

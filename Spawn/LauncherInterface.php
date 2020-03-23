@@ -164,7 +164,7 @@ interface LauncherInterface
     /**
      * Returns the Pid (process identifier), if applicable.
      *
-     * @return int|null — The process id if running, null otherwise
+     * @return int|null The process id if running, null otherwise
      */
     public function getPid(): ?int;
 

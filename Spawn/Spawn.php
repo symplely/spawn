@@ -189,9 +189,9 @@ class Spawn
     public static function daemon($task, $channel = null): LauncherInterface
     {
         if (\is_string($task)) {
-            $shadow = (('\\' === \DIRECTORY_SEPARATOR) ? 'start /b ' : 'nohup ') . $task;
+            $shadow = (('\\' === \IS_WINDOWS) ? 'start /b ' : 'nohup ') . $task;
         } else {
-            $shadow[] = ('\\' === \DIRECTORY_SEPARATOR) ? 'start /b' : 'nohup';
+            $shadow[] = ('\\' === \IS_WINDOWS) ? 'start /b' : 'nohup';
             $shadow[] = $task;
         }
 

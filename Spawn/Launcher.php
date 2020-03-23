@@ -14,6 +14,7 @@ use Async\Spawn\Process;
 use Async\Spawn\SpawnError;
 use Async\Spawn\SerializableException;
 use Async\Spawn\LauncherInterface;
+use UVProcess;
 
 /**
  * Launcher runs a command/script/application/callable in an independent process.
@@ -26,6 +27,7 @@ class Launcher implements LauncherInterface
      * @var Process|\UVProcess
      */
     protected $process;
+    protected $task;
     protected $id;
     protected $pid;
     protected $in;
@@ -65,7 +67,8 @@ class Launcher implements LauncherInterface
         \UVPipe $error = null,
         \UVTimer $timer = null,
         \UVLoop $loop = null,
-        bool $isYield = false
+        bool $isYield = false,
+        $task = null
     ) {
         $this->timeout = $timeout;
         $this->process = $process;
@@ -74,8 +77,9 @@ class Launcher implements LauncherInterface
         $this->out = $output;
         $this->err = $error;
         $this->timer = $timer;
-        self::$uv = $loop;
         $this->isYield = $isYield;
+        $this->task = $task;
+        self::$uv = $loop;
         self::$launcher[$id] = $this;
     }
 
@@ -125,8 +129,10 @@ class Launcher implements LauncherInterface
             $id = (int) $getId;
             $launcher = isset($launch[$id]) ? $launch[$id] : null;
             if ($launcher instanceof Launcher) {
-                \uv_idle_stop($launcher->idle);
-                \uv_unref($launcher->idle);
+                if ($launcher->idle instanceof \UVIdle && \uv_is_active($launcher->idle)) {
+                    \uv_idle_stop($launcher->idle);
+                    \uv_unref($launcher->idle);
+                }
 
                 if ($launcher->timer instanceof \UVTimer && \uv_is_active($launcher->timer)) {
                     \uv_timer_stop($launcher->timer);
@@ -134,7 +140,7 @@ class Launcher implements LauncherInterface
                 }
 
                 if ($signal) {
-                    if ($signal === \UV::SIGABRT) {
+                    if ($signal === \SIGINT) {
                         $launcher->status = 'timeout';
                         $launcher->triggerTimeout($launcher->isYield);
                     } else {
@@ -183,7 +189,8 @@ class Launcher implements LauncherInterface
                 0
             );
         } else {
-            $taskArray = \explode(' ', $task);
+            $cmd = (\IS_WINDOWS) ? 'cmd /c ' . $task : $task;
+            $taskArray = \explode(' ', $cmd);
             $process = \uv_spawn(
                 $uvLoop,
                 \array_shift($taskArray),
@@ -196,18 +203,31 @@ class Launcher implements LauncherInterface
             );
         }
 
-        $timer = null;
+        $timer = \uv_timer_init($uvLoop);
         if ($timeout) {
-            $timer = \uv_timer_init($uvLoop);
             \uv_timer_start($timer, $timeout * 1000, 0, function ($timer) use ($process, $getId, &$launch) {
                 $launch[$getId]->status = 'timeout';
-                \uv_process_kill($process, \UV::SIGABRT);
-                \uv_timer_stop($timer);
+                if ($process instanceof \UVProcess && \uv_is_active($process)) {
+                    \uv_process_kill($process, \SIGINT);
+                }
+
+                //\uv_timer_stop($timer);
                 \uv_unref($timer);
             });
         }
 
-        return new self($process, (int) $getId, $timeout, $in, $out, $err, $timer, $uvLoop, $isYield);
+        return new self(
+            $process,
+            (int) $getId,
+            $timeout,
+            $in,
+            $out,
+            $err,
+            $timer,
+            $uvLoop,
+            $isYield,
+            $task
+        );
     }
 
     public function start(): LauncherInterface
@@ -254,14 +274,21 @@ class Launcher implements LauncherInterface
 
     public function restart(): LauncherInterface
     {
-        if ($this->isRunning())
-            $this->stop();
+        if ($this->process instanceof Process) {
+            if ($this->isRunning())
+                $this->stop();
 
-        $process = clone $this->process;
+            $process = clone $this->process;
+            $launcher = $this->create($process, $this->id, $this->timeout);
 
-        $launcher = $this->create($process, $this->id, $this->timeout);
+            return $launcher->start();
+        } else {
+            $launcher = self::add($this->task);
+            if ($this->isRunning())
+                $this->stop();
 
-        return $launcher->start();
+            return $launcher->start();
+        }
     }
 
     public function run(bool $useYield = false)
@@ -365,7 +392,7 @@ class Launcher implements LauncherInterface
     public function stop(): LauncherInterface
     {
         if ($this->process instanceof \UVProcess) {
-            \uv_process_kill($this->process, \UV::SIGKILL);
+            \uv_process_kill($this->process, \SIGKILL);
         } else {
             $this->process->stop();
         }
@@ -529,6 +556,9 @@ class Launcher implements LauncherInterface
 
     public function getPid(): ?int
     {
+        if ($this->process instanceof \UVProcess)
+            return (int) $this->process;
+
         return $this->pid;
     }
 
