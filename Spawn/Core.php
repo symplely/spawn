@@ -201,7 +201,7 @@ if (!\function_exists('spawn')) {
      */
     function spawn(
         $executable,
-        int $timeout = 60,
+        int $timeout = 0,
         $processChannel = null,
         bool $isYield = null
     ): LauncherInterface {

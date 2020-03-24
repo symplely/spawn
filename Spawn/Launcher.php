@@ -87,7 +87,7 @@ class Launcher implements LauncherInterface
         $this->close();
     }
 
-    public static function create(Process $process, int $id, int $timeout = 60, bool $isYield = false): LauncherInterface
+    public static function create(Process $process, int $id, int $timeout = 0, bool $isYield = false): LauncherInterface
     {
         return new self($process, $id, $timeout, null, null, null, null, null, $isYield);
     }
@@ -99,7 +99,7 @@ class Launcher implements LauncherInterface
         string $containerScript = '',
         string $autoload = '',
         bool $isInitialized = false,
-        int $timeout = 60,
+        int $timeout = 0,
         bool $isYield = false
     ): LauncherInterface {
         if (!$isInitialized) {

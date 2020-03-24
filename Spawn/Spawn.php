@@ -93,7 +93,7 @@ class Spawn
      */
     public static function create(
         $task,
-        int $timeout = 60,
+        int $timeout = 0,
         $input = null,
         bool $isYield = null
     ): LauncherInterface {

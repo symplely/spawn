@@ -4,8 +4,6 @@ namespace Async\Tests;
 
 use Async\Spawn\Spawn;
 use Async\Spawn\SpawnError;
-use Async\Spawn\Channel;
-use Async\Spawn\ChannelInterface;
 use PHPUnit\Framework\TestCase;
 
 class SpawnTest extends TestCase
@@ -21,7 +19,7 @@ class SpawnTest extends TestCase
 
         $process = \spawn(function () {
             return 2;
-        }, 1)->then(function (int $output) use (&$counter) {
+        })->then(function (int $output) use (&$counter) {
             $counter = $output;
         });
 
