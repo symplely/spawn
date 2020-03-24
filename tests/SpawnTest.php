@@ -21,7 +21,7 @@ class SpawnTest extends TestCase
 
         $process = \spawn(function () {
             return 2;
-        })->then(function (int $output) use (&$counter) {
+        }, 1)->then(function (int $output) use (&$counter) {
             $counter = $output;
         });
 
