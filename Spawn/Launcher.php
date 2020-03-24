@@ -143,6 +143,7 @@ class Launcher implements LauncherInterface
                         $launcher->status = 'timeout';
                         $launcher->triggerTimeout($launcher->isYield);
                     } else {
+                        $launcher->status = 'signaled';
                         $launcher->triggerSignal($signal);
                     }
                 } elseif ($stat === 0) {
@@ -429,7 +430,7 @@ class Launcher implements LauncherInterface
     public function isTerminated(): bool
     {
         if ($this->process instanceof \UVProcess)
-            return ($this->status === false);
+            return ($this->status === false) || \is_string($this->status);
 
         return $this->process->isTerminated();
     }
@@ -638,6 +639,8 @@ class Launcher implements LauncherInterface
 
     public function triggerSignal(int $signal = 0)
     {
+        $this->status = 'signaled';
+
         if (isset($this->signalCallbacks[$signal])) {
             if ($this->isYield)
                 return $this->yieldSignal($signal);

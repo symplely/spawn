@@ -96,7 +96,7 @@ class SpawnTest extends TestCase
         $this->assertTrue($process->isTimedOut());
         $this->assertFalse($process->isRunning());
         $this->assertFalse($process->isSuccessful());
-        $this->assertFalse($process->isTerminated());
+        $this->assertTrue($process->isTerminated());
         //$this->assertEquals(1, $counter);
     }
 
@@ -225,6 +225,25 @@ class SpawnTest extends TestCase
         $process->stop();
         $process->wait();
         $this->assertFalse($process->isRunning());
+    }
+
+    public function testSignal()
+    {
+        $counter = 0;
+
+        $process = Spawn::create(function () {
+            \sleep(10);
+        })->signal(\SIGKILL, function () use (&$counter) {
+            $counter += 1;
+        });
+
+        $process->stop();
+        $this->assertTrue($process->isRunning());
+        $process->run();
+        $this->assertFalse($process->isRunning());
+        $this->assertFalse($process->isSuccessful());
+        $this->assertTrue($process->isTerminated());
+        $this->assertEquals(1, $counter);
     }
 
     public function testIsSuccessfulCMD()
