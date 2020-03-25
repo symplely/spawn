@@ -53,6 +53,12 @@ class Launcher implements LauncherInterface
     protected $timeoutCallbacks = [];
     protected $progressCallbacks = [];
     protected $signalCallbacks = [];
+
+    /**
+     * @var int
+     */
+    protected $signal = null;
+
     protected static $launcher = [];
     protected static $uv = null;
 
@@ -144,6 +150,7 @@ class Launcher implements LauncherInterface
                             $launcher->triggerTimeout($launcher->isYield);
                     } else {
                         $launcher->status = 'signaled';
+                        $launcher->signal = $signal;
                         if (!Spawn::isBypass())
                             $launcher->triggerSignal($signal);
                     }
@@ -351,6 +358,7 @@ class Launcher implements LauncherInterface
         $this->process = null;
         $this->status = null;
         $this->task = null;
+        $this->signal = null;
     }
 
     protected function yieldRun()
@@ -572,6 +580,11 @@ class Launcher implements LauncherInterface
         return $this->pid;
     }
 
+    public function getSignaled(): ?int
+    {
+        return $this->signal;
+    }
+
     /**
      * @codeCoverageIgnore
      */
@@ -650,6 +663,7 @@ class Launcher implements LauncherInterface
     public function triggerSignal(int $signal = 0)
     {
         $this->status = 'signaled';
+        $this->signal = $signal;
 
         if (isset($this->signalCallbacks[$signal])) {
             if ($this->isYield)

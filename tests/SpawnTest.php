@@ -243,6 +243,7 @@ class SpawnTest extends TestCase
         $this->assertTrue($process->isTerminated());
         $this->assertTrue($process->isSignaled());
         $this->assertEquals(1, $counter);
+        $this->assertEquals(\SIGKILL, $process->getSignaled());
     }
 
     public function testIsSuccessfulCMD()

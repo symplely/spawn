@@ -241,6 +241,14 @@ interface LauncherInterface
     public function getPipeInput();
 
     /**
+     * Return the termination signal.
+     * - This feature is only available when using `libuv`.
+     *
+     * @return int|null
+     */
+    public function getSignaled(): ?int;
+
+    /**
      * Call the progress callbacks on the child subprocess output in real time.
      *
      * @param string $type
