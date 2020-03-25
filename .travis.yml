@@ -7,14 +7,13 @@ addons:
       - php-pear
 
 php:
-    - 7.1
     - 7.2
     - 7.3
     - 7.4
 
 matrix:
     allow_failures:
-        - php: 7.1
+        - php: 7.3
         - php: 7.4
     fast_finish: true
 
