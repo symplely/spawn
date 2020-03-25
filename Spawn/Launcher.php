@@ -46,7 +46,6 @@ class Launcher implements LauncherInterface
     protected $showOutput = false;
     protected $isYield = false;
 
-    /** @var bool */
     protected $status = null;
 
     protected $successCallbacks = [];
@@ -141,17 +140,21 @@ class Launcher implements LauncherInterface
                 if ($signal) {
                     if ($signal === \SIGINT) {
                         $launcher->status = 'timeout';
-                        $launcher->triggerTimeout($launcher->isYield);
+                        if (!Spawn::isBypass())
+                            $launcher->triggerTimeout($launcher->isYield);
                     } else {
                         $launcher->status = 'signaled';
-                        $launcher->triggerSignal($signal);
+                        if (!Spawn::isBypass())
+                            $launcher->triggerSignal($signal);
                     }
                 } elseif ($stat === 0) {
                     $launcher->status = true;
-                    $launcher->triggerSuccess($launcher->isYield);
+                    if (!Spawn::isBypass())
+                        $launcher->triggerSuccess($launcher->isYield);
                 } elseif ($stat === 1) {
                     $launcher->status = false;
-                    $launcher->triggerError($launcher->isYield);
+                    if (!Spawn::isBypass())
+                        $launcher->triggerError($launcher->isYield);
                 }
 
                 foreach ([$in, $out, $err, $process] as $handle) {
@@ -161,7 +164,8 @@ class Launcher implements LauncherInterface
                     }
                 }
 
-                $launcher->flush();
+                if (!Spawn::isBypass())
+                    $launcher->flush();
             }
         };
 
@@ -240,9 +244,7 @@ class Launcher implements LauncherInterface
                     @\uv_read_start($this->out, function ($out, $nRead, $buffer) {
                         if ($nRead > 0) {
                             $this->processOutput .= $buffer;
-                            $this->lastResult = $buffer;
-                            $this->display($buffer);
-                            $this->triggerProgress('out', $buffer);
+                            $this->displayProgress('out', $buffer);
                         }
                     });
                 }
@@ -251,24 +253,27 @@ class Launcher implements LauncherInterface
                     @\uv_read_start($this->err, function ($err, $nRead, $buffer) {
                         if ($nRead > 0) {
                             $this->processError .= $buffer;
-                            $this->lastResult = $buffer;
-                            $this->display($buffer);
-                            $this->triggerProgress('err', $buffer);
+                            $this->displayProgress('err', $buffer);
                         }
                     });
                 }
             });
         } else {
             $this->process->start(function ($type, $buffer) {
-                $this->lastResult = $buffer;
-                $this->display($buffer);
-                $this->triggerProgress($type, $buffer);
+                $this->displayProgress($type, $buffer);
             });
 
             $this->pid = $this->process->getPid();
         }
 
         return $this;
+    }
+
+    protected function displayProgress($type, $buffer)
+    {
+        $this->lastResult = $buffer;
+        $this->display($buffer);
+        $this->triggerProgress($type, $buffer);
     }
 
     public function restart(): LauncherInterface
@@ -279,15 +284,13 @@ class Launcher implements LauncherInterface
 
             $process = clone $this->process;
             $launcher = $this->create($process, $this->id, $this->timeout);
-
-            return $launcher->start();
         } else {
-            $launcher = self::add($this->task);
+            $launcher = self::add($this->task, $this->id, 'php', '', '', false, (int) $this->timeout, $this->isYield);
             if ($this->isRunning())
                 $this->stop();
-
-            return $launcher->start();
         }
+
+        return $launcher->start();
     }
 
     public function run(bool $useYield = false)
@@ -335,7 +338,7 @@ class Launcher implements LauncherInterface
 
     public function close()
     {
-        if ($this->process instanceof Process) {
+        if ($this->process instanceof Process || Spawn::isBypass()) {
             $this->flush();
         }
 
@@ -348,7 +351,6 @@ class Launcher implements LauncherInterface
         $this->process = null;
         $this->status = null;
         $this->task = null;
-        self::$uv = null;
     }
 
     protected function yieldRun()
@@ -411,10 +413,18 @@ class Launcher implements LauncherInterface
         return ((\microtime(true) - $this->startTime) > $this->timeout);
     }
 
+    /**
+     * @codeCoverageIgnore
+     */
+    public function isSignaled(): bool
+    {
+        return ($this->status === 'signaled');
+    }
+
     public function isRunning(): bool
     {
         if ($this->process instanceof \UVProcess)
-            return (bool) \uv_is_active($this->process) && !\is_bool($this->status);
+            return (bool) \uv_is_active($this->process) && \is_null($this->status);
 
         return $this->process->isRunning();
     }

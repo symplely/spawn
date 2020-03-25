@@ -39,6 +39,9 @@ class Spawn
     /** @var bool */
     protected static $useUv = true;
 
+    /** @var bool */
+    protected static $bypass = false;
+
     /**
      * @codeCoverageIgnore
      */
@@ -187,6 +190,33 @@ class Spawn
     public static function uvLoop(\UVLoop $loop)
     {
         Launcher::uvLoop($loop);
+    }
+
+    /**
+     * Bypass calling `uv_spawn` callbacks handlers.
+     * - The callbacks handlers are for standalone use.
+     * - The `uv_spawn` callback will only set process status.
+     * - This feature is for `Coroutine` package or any third party package.
+     *
+     * @codeCoverageIgnore
+     */
+    public static function bypass()
+    {
+        self::$bypass = true;
+    }
+
+    /**
+     * Is bypass calling `uv_spawn` callbacks handlers set, `Spawn::bypass()` was called.
+     * - The callbacks handlers are for standalone use.
+     * - The `uv_spawn` callback will only set process status.
+     * - This feature is for `Coroutine` package or any third party package.
+     *
+     * @return bool
+     * @internal
+     */
+    public static function isBypass(): bool
+    {
+        return self::$bypass;
     }
 
     /**

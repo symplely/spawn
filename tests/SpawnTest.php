@@ -241,6 +241,7 @@ class SpawnTest extends TestCase
         $this->assertFalse($process->isRunning());
         $this->assertFalse($process->isSuccessful());
         $this->assertTrue($process->isTerminated());
+        $this->assertTrue($process->isSignaled());
         $this->assertEquals(1, $counter);
     }
 

@@ -183,6 +183,13 @@ interface LauncherInterface
     public function isTimedOut(): bool;
 
     /**
+     * Checks if the process received a signal.
+     *
+     * @return bool
+     */
+    public function isSignaled(): bool;
+
+    /**
      * Checks if the process is currently running.
      *
      * @return bool true if the process is currently running, false otherwise
