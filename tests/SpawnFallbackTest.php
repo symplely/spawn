@@ -263,4 +263,16 @@ class SpawnFallbackTest extends TestCase
         $this->assertGreaterThan(0, $process->getPid());
         $process->stop();
     }
+
+    public function testLargeOutputs()
+    {
+        $process = Spawn::create(function () {
+            return \str_repeat('abcd', 1024 * 512);
+        }, 5);
+
+        $process->run();
+        $output = $process->getOutput();
+        $process->close();
+        $this->assertEquals(\str_repeat('abcd', 1024 * 512), $output);
+    }
 }
