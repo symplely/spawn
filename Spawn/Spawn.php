@@ -138,16 +138,6 @@ class Spawn
     }
 
     /**
-     * Set the shell command to use to execute the code with.
-     *
-     * @param string $executable
-     */
-    public static function shell(string $executable = 'php'): void
-    {
-        self::$executable = $executable;
-    }
-
-    /**
      * Set/expects the launched sub processes to be called and to be using the `yield` keyword.
      *
      * @param bool $useYield

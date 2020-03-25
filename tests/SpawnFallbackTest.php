@@ -264,52 +264,15 @@ class SpawnFallbackTest extends TestCase
         $process->stop();
     }
 
-    public function testPhpPathExecutable()
+    public function testLargeOutputs()
     {
-        $executable = '/opt/path/that/can/never/exist/for/testing/bin/php';
-        $notFoundError = '';
-        $result = null;
-
-        // test with custom executable
-        Spawn::shell($executable);
         $process = Spawn::create(function () {
-            return true;
-        })->then(function ($_result) use (&$result) {
-            $result = $_result;
-        })->catch(function ($error) use (&$result, &$notFoundError) {
-            $result = false;
-            $notFoundError = $error->getMessage();
-        });
-
-        if ('\\' === \DIRECTORY_SEPARATOR) {
-            $pathCheck = 'The system cannot find the path specified.';
-        } else {
-            $pathCheck = $executable;
-        }
-
-        $process->run();
-        $this->assertEquals(false, $result);
-        $this->assertRegExp("%{$pathCheck}%", $notFoundError);
-
-        // test with default executable (reset for further tests)
-        Spawn::shell('php');
-        $process = Spawn::create(function () {
-            return 'reset';
-        })->then(function ($_result) use (&$result) {
-            $result = $_result;
+            return \str_repeat('abcd', 1024 * 512);
         });
 
         $process->run();
-        $this->assertEquals('reset', $result);
-
-        // test with default executable
-        $process = Spawn::create(function () {
-            return 'default';
-        })->then(function ($_result) use (&$result) {
-            $result = $_result;
-        });
-
-        $process->run();
-        $this->assertEquals('default', $result);
+        $output = $process->getOutput();
+        $process->close();
+        $this->assertEquals(\str_repeat('abcd', 1024 * 512), $output);
     }
 }

@@ -40,7 +40,6 @@ try {
 
     $channel->flush();
     $channel->write($serializedOutput);
-    $channel->flush();
 
     exit(0);
 } catch (\Throwable $exception) {
