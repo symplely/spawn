@@ -588,7 +588,7 @@ class Launcher implements LauncherInterface
     /**
      * @codeCoverageIgnore
      */
-    public static function uvLoop(\UVLoop $loop)
+    public static function uvLoop(?\UVLoop $loop)
     {
         self::$uv = $loop;
     }

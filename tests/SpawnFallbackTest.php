@@ -11,7 +11,7 @@ class SpawnFallbackTest extends TestCase
 {
 	protected function setUp(): void
     {
-        Spawn::off();
+        Spawn::setup(null, false, false, false);
     }
 
     public function testIt_can_handle_success()

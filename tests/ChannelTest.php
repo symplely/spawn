@@ -11,7 +11,7 @@ class ChannelTest extends TestCase
 {
 	protected function setUp(): void
     {
-        Spawn::on();
+        Spawn::setup(null, false, false, true);
     }
 
     public function testSimpleChannel()

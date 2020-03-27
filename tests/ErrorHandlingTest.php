@@ -11,7 +11,7 @@ class ErrorHandlingTest extends TestCase
 {
 	protected function setUp(): void
     {
-        Spawn::on();
+        Spawn::setup(null, false, false, true);
     }
 
     public function testIt_can_handle_exceptions_via_catch_callback()

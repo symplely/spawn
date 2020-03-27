@@ -138,65 +138,29 @@ class Spawn
     }
 
     /**
-     * Set/expects the launched sub processes to be called and to be using the `yield` keyword.
+     * Setup for third party integration.
      *
-     * @param bool $useYield
-     *
-     * @codeCoverageIgnore
-     */
-    public static function yield(bool $useYield = true): void
-    {
-        self::$isYield = $useYield;
-    }
-
-    /**
-     * Turn on `uv_spawn` for child subprocess operations, will use **libuv** features.
-     *
-     * @codeCoverageIgnore
-     */
-    public static function on(): void
-    {
-        self::$useUv = true;
-    }
-
-    /**
-     * Turn off `uv_spawn` for child subprocess operations, will use `proc_open` of **symfony/process**.
-     *
-     * @codeCoverageIgnore
-     */
-    public static function off(): void
-    {
-        self::$useUv = false;
-    }
-
-    /**
-     * Set UVLoop handle.
-     * - This feature is only available when using `libuv`.
-     *
-     * @param \UVLoop $loop
-     *
-     * @codeCoverageIgnore
-     */
-    public static function uvLoop(\UVLoop $loop)
-    {
-        Launcher::uvLoop($loop);
-    }
-
-    /**
-     * Bypass calling `uv_spawn` callbacks handlers.
+     * @param \UVLoop|null $loop - Set UVLoop handle, this feature is only available when using `libuv`.
+     * @param bool $isYield - Set/expects the launched sub processes to be called and using the `yield` keyword.
+     * @param bool $bypass - Bypass calling `uv_spawn` callbacks handlers.
      * - The callbacks handlers are for standalone use.
      * - The `uv_spawn` callback will only set process status.
      * - This feature is for `Coroutine` package or any third party package.
+     * @param bool $useUv - Turn **on/off** `uv_spawn` for child subprocess operations, will use **libuv** features,
+     * if not **true** will use `proc_open` of **symfony/process**.
      *
      * @codeCoverageIgnore
      */
-    public static function bypass()
+    public static function setup(?\UVLoop $loop = null, bool $isYield = true, bool $bypass = true, bool $useUv = true): void
     {
-        self::$bypass = true;
+        Launcher::uvLoop($loop);
+        self::$bypass = $bypass;
+        self::$isYield = $isYield;
+        self::$useUv = $useUv;
     }
 
     /**
-     * Is bypass calling `uv_spawn` callbacks handlers set, `Spawn::bypass()` was called.
+     * Is bypass calling `uv_spawn` callbacks handlers set.
      * - The callbacks handlers are for standalone use.
      * - The `uv_spawn` callback will only set process status.
      * - This feature is for `Coroutine` package or any third party package.
