@@ -151,9 +151,12 @@ class Spawn
      *
      * @codeCoverageIgnore
      */
-    public static function setup(?\UVLoop $loop = null, bool $isYield = true, bool $bypass = true, bool $useUv = true): void
+    public static function setup($loop, bool $isYield = true, bool $bypass = true, bool $useUv = true): void
     {
-        Launcher::uvLoop($loop);
+        if ($loop instanceof \UVLoop) {
+            Launcher::uvLoop($loop);
+        }
+
         self::$bypass = $bypass;
         self::$isYield = $isYield;
         self::$useUv = $useUv;
