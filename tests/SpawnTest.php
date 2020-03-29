@@ -246,6 +246,29 @@ class SpawnTest extends TestCase
         $this->assertEquals(\SIGKILL, $process->getSignaled());
     }
 
+    public function testSignalYield()
+    {
+        $counter = 0;
+
+        $process = Spawn::create(function () {
+            \sleep(10);
+        }, 0, null, true)->signal(\SIGKILL, function () use (&$counter) {
+            $counter += 1;
+        });
+
+        $process->stop();
+        $this->assertTrue($process->isRunning());
+        $yield = $process->yielding();
+        $this->assertTrue($yield instanceof \Generator);
+        $this->assertNull($yield->current());
+        $this->assertFalse($process->isRunning());
+        $this->assertFalse($process->isSuccessful());
+        $this->assertTrue($process->isTerminated());
+        $this->assertTrue($process->isSignaled());
+        //$this->assertEquals(1, $counter);
+        $this->assertEquals(\SIGKILL, $process->getSignaled());
+    }
+
     public function testIsSuccessfulCMD()
     {
         $process = Spawn::create('echo foo');

@@ -87,11 +87,6 @@ class Launcher implements LauncherInterface
         self::$launcher[$id] = $this;
     }
 
-    public function __destruct()
-    {
-        $this->close();
-    }
-
     public static function create(Process $process, int $id, int $timeout = 0, bool $isYield = false): LauncherInterface
     {
         return new self($process, $id, $timeout, null, null, null, null, null, $isYield);
