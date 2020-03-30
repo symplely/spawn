@@ -166,6 +166,8 @@ class Launcher implements LauncherInterface
                     }
                 }
 
+                \uv_run($launcher::$uv, \UV::RUN_NOWAIT);
+
                 if (!Spawn::isBypass())
                     $launcher->flush();
             }
@@ -396,9 +398,9 @@ class Launcher implements LauncherInterface
 
     public function stop(): LauncherInterface
     {
-        if ($this->process instanceof \UVProcess) {
+        if ($this->process instanceof \UVProcess && \uv_is_active($this->process)) {
             \uv_process_kill($this->process, \SIGKILL);
-        } else {
+        } elseif ($this->process instanceof Process) {
             $this->process->stop();
         }
 
