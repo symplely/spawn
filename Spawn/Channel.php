@@ -131,7 +131,7 @@ class Channel implements ChannelInterface
      */
     public function flush(): bool
     {
-        return \fflush($this->ipcOutput);;
+        return \fflush($this->ipcOutput);
     }
 
     /**

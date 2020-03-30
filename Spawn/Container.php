@@ -36,17 +36,17 @@ try {
 
     $output = $task($channel);
 
-    $serializedOutput = \base64_encode(\serialize($output));
-
-    $channel->flush();
-    $channel->write($serializedOutput);
-    $channel->flush();
+    \fflush(\STDOUT);
+    \fwrite(\STDOUT, \base64_encode(\serialize($output)));
+    \fflush(\STDOUT);
 
     exit(0);
 } catch (\Throwable $exception) {
     $output = new SerializableException($exception);
 
-    $channel->error(\base64_encode(\serialize($output)));
+    \fflush(\STDERR);
+    \fwrite(\STDERR, \base64_encode(\serialize($output)));
+    \fflush(\STDERR);
 
     exit(1);
 }

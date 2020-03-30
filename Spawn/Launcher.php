@@ -481,15 +481,20 @@ class Launcher implements LauncherInterface
 
     protected function decode($output, $errorSet = false)
     {
-        $realOutput = @\unserialize(\base64_decode((string) $output));
-        if (!$realOutput) {
-            $realOutput = $output;
-            if ($errorSet) {
-                $this->errorOutput = $realOutput;
+        if (\is_string($output)) {
+            $realOutput = @\unserialize(\base64_decode($output));
+            if (!$realOutput) {
+                $realOutput = $output;
+                if ($errorSet) {
+                    $this->errorOutput = $realOutput;
+                }
             }
+
+            return $realOutput;
         }
 
-        return $realOutput;
+
+        return $output;
     }
 
     protected function realDecoded($buffer = null)
