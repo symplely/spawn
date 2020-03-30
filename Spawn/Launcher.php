@@ -166,8 +166,6 @@ class Launcher implements LauncherInterface
                     }
                 }
 
-                \uv_run($launcher::$uv, \UV::RUN_NOWAIT);
-
                 if (!Spawn::isBypass())
                     $launcher->flush();
             }
