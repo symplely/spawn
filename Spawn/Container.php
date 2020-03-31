@@ -47,9 +47,7 @@ try {
     $output = new SerializableException($exception);
 
     \fflush(\STDERR);
-    \usleep(10);
     \fwrite(\STDERR, \base64_encode(\serialize($output)));
-    \usleep(10);
     \fflush(\STDERR);
 
     exit(1);
