@@ -231,4 +231,37 @@ if (!\function_exists('spawn')) {
     {
         return $process->getResult();
     }
+
+    /**
+     * Check if a string is base64 valid.
+     *
+     * @param string $input
+     *
+     * @return bool|null
+     *
+     * @codeCoverageIgnore
+     */
+    function is_base64($input): ?bool
+    {
+        // The encoding used in this library expects the last 2 characters to be "`==`".
+        if (\is_string($input) && (\substr($input, -2, 1) == '=') && (\substr($input, -1, 1) == '=')) {
+            // By default PHP will ignore “bad” characters, so we need to enable the “$strict” mode
+            $str = \base64_decode($input, true);
+
+            // If $input cannot be decoded the $str will be a Boolean “FALSE”
+            if ($str === false) {
+                return null;
+            } else {
+                $b64 = \base64_encode($str);
+                // Finally, check if input string and real Base64 are identical
+                if ($input !== $b64) {
+                    return null;
+                }
+
+                return true;
+            }
+        }
+
+        return false;
+    }
 }

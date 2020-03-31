@@ -37,7 +37,9 @@ try {
     $output = $task($channel);
 
     \fflush(\STDOUT);
+    \usleep(10);
     \fwrite(\STDOUT, \base64_encode(\serialize($output)));
+    \usleep(10);
     \fflush(\STDOUT);
 
     exit(0);
@@ -45,7 +47,9 @@ try {
     $output = new SerializableException($exception);
 
     \fflush(\STDERR);
+    \usleep(10);
     \fwrite(\STDERR, \base64_encode(\serialize($output)));
+    \usleep(10);
     \fflush(\STDERR);
 
     exit(1);
