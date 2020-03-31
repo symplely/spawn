@@ -15,6 +15,7 @@ $process = \spawn(
         $channel->write('ping');
         echo $channel->read();
         echo $channel->read();
+        \usleep(1000);
         return 'The game!';
     }
 )->progress(function ($type, $data) use ($ipc) {

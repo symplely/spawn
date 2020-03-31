@@ -22,6 +22,7 @@ class ChannelFallbackTest extends TestCase
             $channel->write('ping');
             echo $channel->read();
             echo $channel->read();
+            usleep(5000);
             return 9;
         }, 10, $ipc)
             ->progress(
@@ -48,6 +49,7 @@ class ChannelFallbackTest extends TestCase
 
         $process = \spawn(function (ChannelInterface $channel) {
             $channel->write('ping');
+            \usleep(1000);
             echo $channel->read();
         }, 10, $ipc)
             ->progress(
