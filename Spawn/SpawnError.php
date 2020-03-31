@@ -8,7 +8,7 @@ use Exception;
 
 class SpawnError extends Exception
 {
-    public static function fromException($exception): self
+    public static function fromException($exception): SpawnError
     {
         return new self($exception);
     }
