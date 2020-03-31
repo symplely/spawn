@@ -56,7 +56,7 @@ class ErrorHandlingFallbackTest extends TestCase
     public function testIt_throws_the_exception_if_no_catch_callback()
     {
         $this->expectException(\Exception::class);
-        $this->expectExceptionMessageRegExp('/test/');
+        $this->expectExceptionMessageMatches('/test/');
 
         $process = Spawn::create(function () {
             throw new \Exception('test');
@@ -68,7 +68,7 @@ class ErrorHandlingFallbackTest extends TestCase
     public function testIt_throws_the_exception_if_no_catch_callback_yield()
     {
         $this->expectException(\Exception::class);
-        $this->expectExceptionMessageRegExp('/test/');
+        $this->expectExceptionMessageMatches('/test/');
 
         $process = Spawn::create(function () {
             throw new \Exception('test');
@@ -81,7 +81,7 @@ class ErrorHandlingFallbackTest extends TestCase
     public function testIt_throws_fatal_errors()
     {
         $this->expectException(\Error::class);
-        $this->expectExceptionMessageRegExp('/test/');
+        $this->expectExceptionMessageMatches('/test/');
 
         $process = Spawn::create(function () {
             throw new \Error('test');

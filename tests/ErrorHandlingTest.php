@@ -58,7 +58,7 @@ class ErrorHandlingTest extends TestCase
     public function testIt_throws_fatal_errors()
     {
         $this->expectException(\Error::class);
-        $this->expectExceptionMessageRegExp('/test/');
+        $this->expectExceptionMessageMatches('/test/');
 
         $process = Spawn::create(function () {
             throw new \Error('test');
