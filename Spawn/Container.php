@@ -37,8 +37,8 @@ try {
     $output = $task($channel);
 
     \fflush(\STDOUT);
+    \usleep(20);
     \fwrite(\STDOUT, \base64_encode(\serialize($output)));
-    \fflush(\STDOUT);
 
     exit(0);
 } catch (\Throwable $exception) {
@@ -46,7 +46,6 @@ try {
 
     \fflush(\STDERR);
     \fwrite(\STDERR, \base64_encode(\serialize($output)));
-    \fflush(\STDERR);
 
     exit(1);
 }
