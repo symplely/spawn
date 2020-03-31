@@ -4,8 +4,8 @@ name: Spawn
 on: [push, pull_request]
 
 jobs:
-  linux7.4:
-    name: PHP I
+  linux7-4:
+    name: Linux CI 7.4
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -39,8 +39,8 @@ jobs:
       - name: Submit code coverage
         run: bash <(curl -s https://codecov.io/bash)
 
-  linux7.3:
-    name: PHP II
+  linux7-3:
+    name: Linux CI 7.3
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
