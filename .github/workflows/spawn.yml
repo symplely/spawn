@@ -4,14 +4,14 @@ name: Spawn
 on: [push, pull_request]
 
 jobs:
-  linux7-4:
-    name: Linux CI 7.4
+  linux7-2:
+    name: Linux CI 7.2
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-latest]
-        php: ['7.4']
+        php: ['7.2']
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -22,14 +22,13 @@ jobs:
       - name: Setup PHP, with composer and extensions
         uses: shivammathur/setup-php@v2 #https://github.com/shivammathur/setup-php
         with:
-          php-version: '7.4'
+          php-version: '7.2'
           extensions: mbstring, simplexml, dom, xdebug
           coverage: xdebug
       - name: Build and install PHP-UV extension
         run: |
           sudo pecl channel-update pecl.php.net
           sudo pecl install uv-beta
-          sudo cp -f /usr/lib/php/20190902/uv.so /usr/lib/php/20180731/uv.so
       - name: Add uv.so to php.ini
         run: sudo echo "extension=uv.so" >> "$(php -r 'echo php_ini_loaded_file();')"
       - name: Install dependencies
