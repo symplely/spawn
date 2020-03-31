@@ -37,9 +37,8 @@ try {
     $output = $task($channel);
 
     \fflush(\STDOUT);
-    \usleep(10);
+    \usleep(20);
     \fwrite(\STDOUT, \base64_encode(\serialize($output)));
-    \usleep(10);
     \fflush(\STDOUT);
 
     exit(0);
