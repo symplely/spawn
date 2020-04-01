@@ -24,7 +24,7 @@
     "require": {
         "php": ">7.2",
         "opis/closure": "^3.5.1",
-        "symfony/process": "5.0.6"
+        "symfony/process": "^5.0.7"
     },
     "autoload": {
         "files": [
