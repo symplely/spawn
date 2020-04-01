@@ -1,6 +1,6 @@
 # Spawn
 
-[![Spawn](https://github.com/symplely/spawn/workflows/Spawn/badge.svg)](https://github.com/symplely/spawn/actions)[![Build status](https://ci.appveyor.com/api/projects/status/rtbhrhl2u29775cs/branch/master?svg=true)](https://ci.appveyor.com/project/techno-express/spawn/branch/master)[![codecov](https://codecov.io/gh/symplely/spawn/branch/master/graph/badge.svg)](https://codecov.io/gh/symplely/spawn)[![Codacy Badge](https://api.codacy.com/project/badge/Grade/56a6036fa1c849c88b6e52827cad32a8)](https://www.codacy.com/gh/symplely/spawn?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=symplely/spawn&amp;utm_campaign=Badge_Grade)[![Maintainability](https://api.codeclimate.com/v1/badges/7604b17b9ebf310ec94b/maintainability)](https://codeclimate.com/github/symplely/spawn/maintainability)
+[![Spawn](https://github.com/symplely/spawn/workflows/Spawn/badge.svg)](https://github.com/symplely/spawn/actions)[![codecov](https://codecov.io/gh/symplely/spawn/branch/master/graph/badge.svg)](https://codecov.io/gh/symplely/spawn)[![Codacy Badge](https://api.codacy.com/project/badge/Grade/56a6036fa1c849c88b6e52827cad32a8)](https://www.codacy.com/gh/symplely/spawn?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=symplely/spawn&amp;utm_campaign=Badge_Grade)[![Maintainability](https://api.codeclimate.com/v1/badges/7604b17b9ebf310ec94b/maintainability)](https://codeclimate.com/github/symplely/spawn/maintainability)
 
 An simply __`uv_spawn`__ wrapper API to _execute_ and _manage_ **sub-processes**, parallel/asynchronous PHP for Blocking I/O.
 
