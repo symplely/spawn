@@ -77,11 +77,6 @@ class ErrorHandlingTest extends TestCase
 
     public function testIt_keeps_the_original_trace()
     {
-        if (\IS_LINUX) {
-            echo __LINE__;
-            //$this->markTestSkipped('Failing on Linux PHP 7.4 for unknown reason.');
-        }
-
         $process = Spawn::create(function () {
             throw SpawnError::fromException('test');
         })->catch(function (SpawnError $exception) {

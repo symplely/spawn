@@ -102,13 +102,12 @@ class ErrorHandlingFallbackTest extends TestCase
         $process->close();
     }
 
-    public function skip_it_keeps_the_original_trace()
+    public function testIt_keeps_the_original_trace()
     {
         $process = Spawn::create(function () {
-            $error = new SpawnError();
-            throw $error->fromException('test');
+            throw SpawnError::fromException('test');
         })->catch(function (SpawnError $exception) {
-            $this->assertStringContainsString('Async\Spawn\SpawnError::fromException(\'test\')', $exception->getMessage());
+            $this->assertStringContainsString("Async\Spawn\SpawnError::fromException('test')", $exception->getMessage());
         });
 
         $process->run();
