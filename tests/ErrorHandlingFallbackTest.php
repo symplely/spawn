@@ -24,6 +24,8 @@ class ErrorHandlingFallbackTest extends TestCase
         spawn_run($process);
         $this->assertFalse($process->isSuccessful());
         $this->assertTrue($process->isTerminated());
+
+        $process->close();
     }
 
     public function testIt_can_handle_exceptions_via_catch_callback_yield()
@@ -37,6 +39,8 @@ class ErrorHandlingFallbackTest extends TestCase
         $yield = $process->yielding();
         $this->assertNull($yield->current());
         $this->assertTrue($process->isTerminated());
+
+        $process->close();
     }
 
     public function testIt_handles_stderr_as_Spawn_error()
@@ -51,6 +55,8 @@ class ErrorHandlingFallbackTest extends TestCase
         $this->assertTrue($process->isSuccessful());
         $this->assertEquals('test', $process->getErrorOutput());
         $this->assertEquals('', $process->getOutput());
+
+        $process->close();
     }
 
     public function testIt_throws_the_exception_if_no_catch_callback()
@@ -63,6 +69,8 @@ class ErrorHandlingFallbackTest extends TestCase
         });
 
         $process->run();
+
+        $process->close();
     }
 
     public function testIt_throws_the_exception_if_no_catch_callback_yield()
@@ -76,6 +84,8 @@ class ErrorHandlingFallbackTest extends TestCase
 
         $yield = $process->yielding();
         $this->assertNull($yield->current());
+
+        $process->close();
     }
 
     public function testIt_throws_fatal_errors()
@@ -88,6 +98,8 @@ class ErrorHandlingFallbackTest extends TestCase
         });
 
         $process->run();
+
+        $process->close();
     }
 
     public function testIt_keeps_the_original_trace()
@@ -100,5 +112,7 @@ class ErrorHandlingFallbackTest extends TestCase
         });
 
         $process->run();
+
+        $process->close();
     }
 }
