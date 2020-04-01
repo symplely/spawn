@@ -102,7 +102,7 @@ class ErrorHandlingFallbackTest extends TestCase
         $process->close();
     }
 
-    public function testIt_keeps_the_original_trace()
+    public function skip_it_keeps_the_original_trace()
     {
         $process = Spawn::create(function () {
             $error = new SpawnError();
