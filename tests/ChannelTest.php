@@ -24,7 +24,7 @@ class ChannelTest extends TestCase
             echo $channel->read();
             usleep(5000);
             return 9;
-        }, 10)
+        }, 6)
             ->progress(
                 function ($type, $data) use ($ipc) {
                     if ('ping' === $data) {
@@ -53,7 +53,7 @@ class ChannelTest extends TestCase
             echo $channel->read();
             usleep(5000);
             return 9;
-        }, 10)
+        }, 1, null, true)
             ->progress(
                 function ($type, $data) use ($ipc) {
                     if ('ping' === $data) {
@@ -67,7 +67,7 @@ class ChannelTest extends TestCase
 
         $ipc->setHandle($process);
         $yield = $process->yielding();
-        $this->assertSame(9, $yield->current());
+        $this->assertSame('ping', $yield->current());
         $process->close();
     }
 }
