@@ -42,32 +42,4 @@ class ChannelTest extends TestCase
         $this->assertSame(9, $ipc->receive());
         $this->assertSame(9, \spawn_result($process));
     }
-
-    public function testSimpleChannelYield()
-    {
-        $ipc = new Channel();
-
-        $process = \spawn(function (ChannelInterface $channel) {
-            $channel->write('ping');
-            echo $channel->read();
-            echo $channel->read();
-            usleep(5000);
-            return 9;
-        }, 1, null, true)
-            ->progress(
-                function ($type, $data) use ($ipc) {
-                    if ('ping' === $data) {
-                        $ipc->send('pang' . \PHP_EOL);
-                    } elseif (!$ipc->isClosed()) {
-                        $ipc->send('pong' . \PHP_EOL)
-                            ->close();
-                    }
-                }
-            );
-
-        $ipc->setHandle($process);
-        $yield = $process->yielding();
-        $this->assertSame('ping', $yield->current());
-        $process->close();
-    }
 }

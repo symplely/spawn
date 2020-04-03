@@ -242,6 +242,7 @@ class Launcher implements LauncherInterface
         if ($this->process instanceof \UVProcess) {
             $this->idle = \uv_idle_init(self::$uv);
             \uv_idle_start($this->idle, function ($handle) {
+
                 if ($this->out instanceof \UVPipe) {
                     @\uv_read_start($this->out, function ($out, $nRead, $buffer) {
                         if ($nRead > 0) {
@@ -651,9 +652,6 @@ class Launcher implements LauncherInterface
     {
         if (\count($this->progressCallbacks) > 0) {
             $liveOutput = $this->realDecoded($buffer);
-            if ($this->isYield)
-                return $this->yieldProgress($type, $liveOutput);
-
             foreach ($this->progressCallbacks as $progressCallback) {
                 $progressCallback($type, $liveOutput);
             }
@@ -721,13 +719,6 @@ class Launcher implements LauncherInterface
 
         foreach ($this->timeoutCallbacks as $callback)
             $callback();
-    }
-
-    protected function yieldProgress(string $type, string $liveOutput)
-    {
-        foreach ($this->progressCallbacks as $progressCallback) {
-            yield $progressCallback($type, $liveOutput);
-        }
     }
 
     protected function yieldSignal($signal)
