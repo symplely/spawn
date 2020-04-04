@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace Async\Spawn;
 
 use Async\Spawn\Process;
-use Async\Spawn\ChannelInterface;
+use Async\Spawn\ChanneledInterface;
 
 /**
  * A channel is used to transfer messages between a `Process` as a IPC pipe.
  */
-class Channel implements ChannelInterface
+class Channeled implements ChanneledInterface
 {
     /**
      * @var callable|null
@@ -37,7 +37,7 @@ class Channel implements ChannelInterface
         \stream_set_write_buffer($this->ipcError, 0);
     }
 
-    public function setHandle(Object $handle): ChannelInterface
+    public function setHandle(Object $handle): ChanneledInterface
     {
         $this->channel = $handle;
 
@@ -47,7 +47,7 @@ class Channel implements ChannelInterface
     /**
      * @codeCoverageIgnore
      */
-    public function setResource($input = \STDIN, $output = \STDOUT, $error = \STDERR): ChannelInterface
+    public function setResource($input = \STDIN, $output = \STDOUT, $error = \STDERR): ChanneledInterface
     {
         $this->ipcInput = $input;
         $this->ipcOutput = $output;
@@ -60,14 +60,14 @@ class Channel implements ChannelInterface
         return $this;
     }
 
-    public function then(callable $whenDrained = null): ChannelInterface
+    public function then(callable $whenDrained = null): ChanneledInterface
     {
         $this->whenDrained = $whenDrained;
 
         return $this;
     }
 
-    public function close(): ChannelInterface
+    public function close(): ChanneledInterface
     {
         $this->open = false;
 
@@ -79,7 +79,7 @@ class Channel implements ChannelInterface
         return !$this->open;
     }
 
-    public function send($message): ChannelInterface
+    public function send($message): ChanneledInterface
     {
         if (null === $message) {
             return $this;

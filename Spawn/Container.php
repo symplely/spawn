@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use Async\Spawn\Channel;
+use Async\Spawn\Channeled;
 use Async\Spawn\Spawn;
 use Async\Spawn\SerializableException;
 
@@ -24,7 +24,7 @@ if (!$serializedClosure) {
 
 if ($error === null) {
     require_once $autoload;
-    $channel = new Channel;
+    $channel = new Channeled;
 }
 
 try {

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use Async\Spawn\Channel;
+use Async\Spawn\Channeled;
 use Async\Spawn\Spawn;
 use Async\Spawn\LauncherInterface;
 
@@ -190,10 +190,11 @@ if (!\function_exists('spawn')) {
      *
      * @param callable $executable
      * @param int $timeout
-     * @param Channel|mixed|null $processChannel Set the input content as `stream`, `resource`, `scalar`,
-     *  `Traversable`, or `null` for no input
+     * @param mixed|null $processChanneled Set the input content as `stream`, `resource`, `scalar`,
+     *  `Traversable`, or `null` for no input.
      * - The content will be passed to the underlying process standard input.
-     * - `$processChannel` is not available when using `libuv` features.
+     * - This feature is only available with Symfony `process` class.
+     * - `$processChanneled` is not available when using `libuv` features.
      * @param null|bool $isYield
      *
      * @return LauncherInterface
@@ -202,10 +203,10 @@ if (!\function_exists('spawn')) {
     function spawn(
         $executable,
         int $timeout = 0,
-        $processChannel = null,
+        $processChanneled = null,
         bool $isYield = null
     ): LauncherInterface {
-        return Spawn::create($executable, $timeout, $processChannel, $isYield);
+        return Spawn::create($executable, $timeout, $processChanneled, $isYield);
     }
 
     /**

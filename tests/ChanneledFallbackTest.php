@@ -3,22 +3,22 @@
 namespace Async\Tests;
 
 use Async\Spawn\Spawn;
-use Async\Spawn\Channel;
-use Async\Spawn\ChannelInterface;
+use Async\Spawn\Channeled;
+use Async\Spawn\ChanneledInterface;
 use PHPUnit\Framework\TestCase;
 
-class ChannelFallbackTest extends TestCase
+class ChanneledFallbackTest extends TestCase
 {
 	protected function setUp(): void
     {
         Spawn::setup(null, false, false, false);
     }
 
-    public function testSimpleChannel()
+    public function testSimpleChanneled()
     {
-        $ipc = new Channel();
+        $ipc = new Channeled();
 
-        $process = \spawn(function (ChannelInterface $channel) {
+        $process = \spawn(function (ChanneledInterface $channel) {
             $channel->write('ping');
             echo $channel->read();
             echo $channel->read();
@@ -43,11 +43,11 @@ class ChannelFallbackTest extends TestCase
         $this->assertSame(9, \spawn_result($process));
     }
 
-    public function testSimpleChannelError()
+    public function testSimpleChanneledError()
     {
-        $ipc = new Channel();
+        $ipc = new Channeled();
 
-        $process = \spawn(function (ChannelInterface $channel) {
+        $process = \spawn(function (ChanneledInterface $channel) {
             $channel->write('ping');
             \usleep(1000);
             echo $channel->read();
@@ -65,7 +65,7 @@ class ChannelFallbackTest extends TestCase
         \spawn_run($process);
     }
 
-    public function testChannelWithCallable()
+    public function testChanneledWithCallable()
     {
         $i = 0;
         $stream = fopen('php://memory', 'w+');
@@ -81,10 +81,10 @@ class ChannelFallbackTest extends TestCase
             return null;
         };
 
-        $input = new Channel();
+        $input = new Channeled();
         $input->then($stream)
             ->send($stream());
-        $process = spawn(function (ChannelInterface $ipc) {
+        $process = spawn(function (ChanneledInterface $ipc) {
             echo $ipc->read(3);
         }, 10, $input)
             ->progress(function ($type, $data) use ($input) {
@@ -96,15 +96,15 @@ class ChannelFallbackTest extends TestCase
         $this->assertSame('123', \spawn_output($process));
     }
 
-    public function testChannelWithGenerator()
+    public function testChanneledWithGenerator()
     {
-        $input = new Channel();
+        $input = new Channeled();
         $input->then(function ($input) {
             yield 'pong';
             $input->close();
         });
 
-        $process = spawn(function (ChannelInterface $ipc) {
+        $process = spawn(function (ChanneledInterface $ipc) {
             $ipc->passthru();
         }, 10, $input);
 
@@ -115,10 +115,10 @@ class ChannelFallbackTest extends TestCase
         $this->assertSame('pingpong', $process->getOutput());
     }
 
-    public function testChannelThen()
+    public function testChanneledThen()
     {
         $i = 0;
-        $input = new Channel();
+        $input = new Channeled();
         $input->then(function () use (&$i) {
             ++$i;
         });
@@ -137,15 +137,15 @@ class ChannelFallbackTest extends TestCase
         $input->setHandle($process);
         $process->run();
 
-        $this->assertSame(0, $i, 'Channel->then callback should be called only when the input *becomes* empty');
+        $this->assertSame(0, $i, 'Channeled->then callback should be called only when the input *becomes* empty');
         $this->assertSame('123456', $process->getOutput());
     }
 
     public function testIteratorOutput()
     {
-        $input = new Channel();
+        $input = new Channeled();
 
-        $launcher = spawn(function (ChannelInterface $ipc) {
+        $launcher = spawn(function (ChanneledInterface $ipc) {
             $ipc->write(123);
             usleep(5000);
             $ipc->error(234);
@@ -188,9 +188,9 @@ class ChannelFallbackTest extends TestCase
 
     public function testNonBlockingNorClearingIteratorOutput()
     {
-        $input = new Channel();
+        $input = new Channeled();
 
-        $launcher = spawn(function (ChannelInterface $ipc) {
+        $launcher = spawn(function (ChanneledInterface $ipc) {
             $ipc->write($ipc->read(3));
         }, 10, $input);
 
@@ -230,7 +230,7 @@ class ChannelFallbackTest extends TestCase
         $stream = fopen('php://memory', 'r+');
         fwrite($stream, 'hello');
         rewind($stream);
-        $p = spawn(function (ChannelInterface $ipc) {
+        $p = spawn(function (ChanneledInterface $ipc) {
             $ipc->passthru();
         }, 10, $stream)
         ->progress(function ($type, $data) use ($stream) {

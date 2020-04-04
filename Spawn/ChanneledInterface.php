@@ -10,16 +10,16 @@ namespace Async\Spawn;
  * Send and receive operations are (async) blocking by default, they can be used
  * to synchronize tasks.
  */
-interface ChannelInterface extends \IteratorAggregate
+interface ChanneledInterface extends \IteratorAggregate
 {
     /**
      * Setup the `parent` IPC handle.
      *
      * @param Object|Launcher $handle Use by `send()` and `receive()`
      *
-     * @return ChannelInterface
+     * @return ChanneledInterface
      */
-    public function setHandle(Object $handle): ChannelInterface;
+    public function setHandle(Object $handle): ChanneledInterface;
 
 
     /**
@@ -29,20 +29,20 @@ interface ChannelInterface extends \IteratorAggregate
      * @param resource|mixed $output
      * @param resource|mixed $error
      *
-     * @return ChannelInterface
+     * @return ChanneledInterface
      */
-    public function setResource($input = \STDIN, $output = \STDOUT, $error = \STDERR): ChannelInterface;
+    public function setResource($input = \STDIN, $output = \STDOUT, $error = \STDERR): ChanneledInterface;
 
     /**
      * Sets a callback that is called when the channel write buffer becomes drained.
      * Use by `getIterator()`
      */
-    public function then(callable $whenDrained = null): ChannelInterface;
+    public function then(callable $whenDrained = null): ChanneledInterface;
 
     /**
      * Close the channel.
      */
-    public function close(): ChannelInterface;
+    public function close(): ChanneledInterface;
 
     /**
      * Check if the channel has been closed yet.
@@ -55,7 +55,7 @@ interface ChannelInterface extends \IteratorAggregate
      * @param resource|string|int|float|bool|\Traversable|null $message The input message
      * @throws \RuntimeException When attempting to send a message into a closed channel.
      */
-    public function send($message): ChannelInterface;
+    public function send($message): ChanneledInterface;
 
     /**
      * Receive the last message from the IPC channel.

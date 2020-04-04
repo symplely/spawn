@@ -98,7 +98,7 @@ interface LauncherInterface
      * The callback will receive **output type** either(`out` or `err`),
      * and **the output** in real-time.
      *
-     * Use: __Channel__ `send()` to write to the standard input of the process.
+     * Use: __Channeled__->`send()` to write to the standard input of the process.
      *
      * @param callable $progressCallback
      *

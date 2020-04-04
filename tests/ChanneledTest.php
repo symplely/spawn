@@ -3,22 +3,22 @@
 namespace Async\Tests;
 
 use Async\Spawn\Spawn;
-use Async\Spawn\Channel;
-use Async\Spawn\ChannelInterface;
+use Async\Spawn\Channeled;
+use Async\Spawn\ChanneledInterface;
 use PHPUnit\Framework\TestCase;
 
-class ChannelTest extends TestCase
+class ChanneledTest extends TestCase
 {
 	protected function setUp(): void
     {
         Spawn::setup(null, false, false, true);
     }
 
-    public function testSimpleChannel()
+    public function testSimpleChanneled()
     {
-        $ipc = new Channel();
+        $ipc = new Channeled();
 
-        $process = \spawn(function (ChannelInterface $channel) {
+        $process = \spawn(function (ChanneledInterface $channel) {
             $channel->write('ping');
             echo $channel->read();
             echo $channel->read();

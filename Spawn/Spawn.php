@@ -86,8 +86,9 @@ class Spawn
      *
      * @param mixed $task The command to run and its arguments
      * @param int|float|null $timeout The timeout in seconds or null to disable
-     * @param mixed|null $input Set the input content as `stream`, `resource`, `scalar`, `Traversable`, or `null` for no input
+     * @param mixed|null $input Set the input content as `stream`, `resource`, `scalar`, `Traversable`, or `null` for no input.
      * - The content will be passed to the underlying process standard input.
+     * - This feature is only available with Symfony `process` class.
      * - `$input` is not available when using `libuv` features.
      * @param null|bool $isYield
      *
@@ -180,12 +181,16 @@ class Spawn
      * Daemon a process to run in the background.
      *
      * @param string $task daemon
+     * @param mixed|null $channeled Set the input content as `stream`, `resource`, `scalar`, `Traversable`, or `null` for no input.
+     * - The content will be passed to the underlying process standard input.
+     * - This feature is only available with Symfony `process` class.
+     * - `$input` is not available when using `libuv` features.
      *
      * @return LauncherInterface
      *
      * @codeCoverageIgnore
      */
-    public static function daemon($task, $channel = null): LauncherInterface
+    public static function daemon($task, $channeled = null): LauncherInterface
     {
         if (\is_string($task)) {
             $shadow = (('\\' === \IS_WINDOWS) ? 'start /b ' : 'nohup ') . $task;
@@ -194,7 +199,7 @@ class Spawn
             $shadow[] = $task;
         }
 
-        return Spawn::create($shadow, 0, $channel);
+        return Spawn::create($shadow, 0, $channeled);
     }
 
     /**
