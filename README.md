@@ -65,9 +65,6 @@ include 'vendor/autoload.php';
 
 use Async\Spawn\Spawn;
 
-// To set the path to the PHP shell executable for child process
-Spawn::shell('/some/path/version-7.3/bin/php');
-
 $process = \spawn($function, $timeout, $channel)
 // Or
 $process = Spawn::create(function () use ($thing) {
@@ -89,24 +86,33 @@ $process->run();
 $process->displayOn()->run();
 ```
 
-## Channel - Transfer messages between a Process
+## Channel - Transfer messages between `Child` and `Parent` process
 
 ```php
 include 'vendor/autoload.php';
 
-use Async\Spawn\Channel;
-use Async\Spawn\ChannelInterface;
+use Async\Spawn\Channeled;
+use Async\Spawn\ChanneledInterface;
 
-$ipc = new Channel();
+$ipc = new Channeled();
 
-$process = spawn(function (ChannelInterface $channel) {
+$process = spawn(function (ChanneledInterface $channel) {
+    // Setup the channel resources if needed, defaults to `STDIN`, `STDOUT`, and `STDERR`.
+    // For methods ->read(), ->write('message'), ->error('error').
+    // This does not need to be called already using defaults.
+    $channel->setResource($input, $output, $error);
+
     $channel->write('ping'); // same as echo 'ping' or echo fwrite(STDOUT, 'ping')
-    usleep(1000);
     echo $channel->read(); // same as echo fgets(STDIN);
     echo $channel->read();
-    usleep(1000);
+
+    // This is needed otherwise last output will be mixed in with the encoded return data.
+    // Or some other processing could be done instead to make this unnecessary.
+    returning(); // same as echo '___uv_spawn___'; usleep(50);
+
+    // all returned `data/results` are encoded, then decode by the parent.
     return 'return whatever';
-    }, 300, $ipc)
+    }, 0, $ipc)
         ->progress(function ($type, $data) use ($ipc) {
             if ('ping' === $data) {
                 $ipc->send('pang' . \PHP_EOL);
@@ -116,9 +122,13 @@ $process = spawn(function (ChannelInterface $channel) {
             }
         });
 
+// Setup the channel instance.
 $ipc->setHandle($process)
-\spawn_run($process);
 
+$result = spawn_run($process);
+
+echo $result; // return whatever
+// Or
 echo \spawn_output($process); // pingpangpongreturn whatever
 // Or
 echo \spawn_result($process); // return whatever
@@ -135,12 +145,19 @@ You can add the following event hooks on a process.
 $process = spawn($function, $timeout, $channel)
 // Or
 $process = Spawn::create(function () {
-        // The second argument is optional, Defaults 300.
+        // The second argument is optional, Defaults no timeout,
         // it sets The maximum amount of time a process may take to finish in seconds
-        // The third is optional input pipe to pass to subprocess
-    }, int $timeout = 300 , $input = null)
-    ->then(function ($output) {
-        // On success, `$output` is returned by the process.
+        // The third is optional input pipe to pass to subprocess, only for `proc_open`
+
+        /////////////////////////////////////////////////////////////
+        // This following statement is needed or some other processing performed before returning data.
+        returning($delay); // will print '___uv_spawn___' and sleep for 50 microseconds;
+        /////////////////////////////////////////////////////////////
+
+        return `result`; // `result` will be encoded, then decoded by parent.
+    }, int $timeout = 0 , $input = null)
+    ->then(function ($result) {
+        // On success, `$result` is returned by the process.
     })
     ->catch(function ($exception) {
         // When an exception is thrown from within a process, it's caught and passed here.
@@ -149,10 +166,11 @@ $process = Spawn::create(function () {
         // When an timeout is reached, it's caught and passed here.
     })
     ->progress(function ($type, $data) {
-        // A IPC like gateway: `$type, $data` is returned by the process progressing, it's producing output.
-        // This can be use as a IPC handler for real time interaction.
+        // A IPC like gateway: `$type, $data` is returned by the process progressing,
+        // it's producing output. This can be use as a IPC handler for real time interaction.
     })
     ->signal($signal, function ($signal) {
+        // The process will be sent termination `signal` and stopped.
         // When an signal is triggered, it's caught and passed here.
         // This feature is only available using `libuv`.
     });
@@ -181,7 +199,26 @@ There's also `->done`, part of `->then()` extended callback method.
 
 // Processes can be retried.
 ->restart();
+
 ->run();
+```
+
+```php
+/**
+ * Setup for third party integration.
+ *
+ * @param UVLoop|null $loop - Set UVLoop handle, this feature is only available when using `libuv`.
+ * @param bool $isYield - Set/expects the launched sub processes to be called and using the `yield` keyword.
+ * @param bool $bypass - Bypass calling `uv_spawn` callbacks handlers.
+ * - The callbacks handlers are for this library standalone use.
+ * - The `uv_spawn` callback will only set process status.
+ * - This feature is for `Coroutine` package or any third party package.
+ * @param bool $useUv - Turn **on/off** `uv_spawn` for child subprocess operations, will use **libuv** features,
+ * if not **true** will use `proc_open` of **symfony/process**.
+ */
+spawn_setup($loop, $isYield, $bypass, $useUv)
+// Or
+Spawn::setup($loop = null, $isYield = true, $bypass = true, $useUv = true);
 ```
 
 ## Error handling

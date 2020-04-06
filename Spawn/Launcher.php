@@ -473,10 +473,10 @@ class Launcher implements LauncherInterface
         }
     }
 
-    public function cleanUp($output = null)
+    public function clean($output = null)
     {
         return \is_string($output)
-            ? \str_replace('Tjs=', '', $output)
+            ? \str_replace(['Tjs=', '___uv_spawn___'], '', $output)
             : $output;
     }
 
@@ -501,7 +501,7 @@ class Launcher implements LauncherInterface
     protected function realDecoded($buffer = null)
     {
         if (!empty($buffer)) {
-            return $this->cleanUp($this->decode($buffer));
+            return $this->clean($this->decode($buffer));
         }
     }
 
@@ -515,7 +515,7 @@ class Launcher implements LauncherInterface
                 $processOutput = $this->process->getOutput();
             }
 
-            $this->output = $this->cleanUp($this->decode($processOutput, true));
+            $this->output = $this->clean($this->decode($processOutput, true));
 
             $cleaned = $this->output;
             $replaceWith = $this->getResult();

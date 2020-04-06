@@ -120,7 +120,6 @@ class Channeled implements ChanneledInterface
      */
     public function write($message): int
     {
-        \fflush($this->ipcOutput);
         $written = \fwrite($this->ipcOutput, (string) $message);
 
         return $written;
@@ -129,17 +128,8 @@ class Channeled implements ChanneledInterface
     /**
      * @codeCoverageIgnore
      */
-    public function flush(): bool
-    {
-        return \fflush($this->ipcOutput);
-    }
-
-    /**
-     * @codeCoverageIgnore
-     */
     public function error($message): int
     {
-        \fflush($this->ipcError);
         $written = \fwrite($this->ipcError, (string) $message);
 
         return $written;
@@ -150,7 +140,6 @@ class Channeled implements ChanneledInterface
      */
     public function passthru(): int
     {
-        \fflush($this->ipcOutput);
         $written = \stream_copy_to_stream($this->ipcInput, $this->ipcOutput);
 
         return $written;

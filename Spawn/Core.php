@@ -190,7 +190,7 @@ if (!\function_exists('spawn')) {
      *
      * @param callable $executable
      * @param int $timeout
-     * @param mixed|null $processChanneled Set the input content as `stream`, `resource`, `scalar`,
+     * @param Channeled|mixed|null $processChanneled Set the input content as `stream`, `resource`, `scalar`,
      *  `Traversable`, or `null` for no input.
      * - The content will be passed to the underlying process standard input.
      * - This feature is only available with Symfony `process` class.
@@ -234,11 +234,11 @@ if (!\function_exists('spawn')) {
     }
 
     /**
-     * Check if a string is base64 valid.
+     * Check if a string is base64 valid, or has `encoded` mixed data.
      *
      * @param string $input
      *
-     * @return bool|null
+     * @return bool|null if `null` **$input** is mixed with `encode` data.
      *
      * @codeCoverageIgnore
      */
@@ -264,5 +264,55 @@ if (!\function_exists('spawn')) {
         }
 
         return false;
+    }
+
+    /**
+     * For use before calling the actual `return` keyword. Will write `___uv_spawn___` to standard
+     * output and flush, then sleep for 50 microseconds.
+     *
+     * The `___uv_spawn___` will be extracted and from the encoded `return` result
+     * before decoding.
+     *
+     * - For use with subprocess `ipc` interaction.
+     *
+     * - This function is intended to overcome an issue when **`return`ing** data/results
+     * from an child subprocess operation.
+     *
+     * - The problem is the fact the last output is being mixed in with the `return` encode
+     * data/results.
+     *
+     * - The parent is given no time to read data stream before the `return`, there was no
+     *  delay or processing preformed between child last output and the `return` statement.
+     *
+     * @param int $microsecond - `50` when using `uv_spawn`, otherwise `1500` or so with `proc_open`.
+     *
+     * @return void
+     *
+     * @codeCoverageIgnore
+     */
+    function returning(int $microsecond = 50)
+    {
+        \fwrite(\STDOUT, '___uv_spawn___');
+        \fflush(\STDOUT);
+        \usleep($microsecond);
+    }
+
+    /**
+     * Setup for third party integration.
+     *
+     * @param \UVLoop|null $loop - Set UVLoop handle, this feature is only available when using `libuv`.
+     * @param bool $isYield - Set/expects the launched sub processes to be called and using the `yield` keyword.
+     * @param bool $bypass - Bypass calling `uv_spawn` callbacks handlers.
+     * - The callbacks handlers are for this library standalone use.
+     * - The `uv_spawn` callback will only set process status.
+     * - This feature is for `Coroutine` package or any third party package.
+     * @param bool $useUv - Turn **on/off** `uv_spawn` for child subprocess operations, will use **libuv** features,
+     * if not **true** will use `proc_open` of **symfony/process**.
+     *
+     * @codeCoverageIgnore
+     */
+    function spawn_setup($loop, bool $isYield = true, bool $bypass = true, bool $useUv = true): void
+    {
+        Spawn::setup($loop, $isYield, $bypass, $useUv);
     }
 }

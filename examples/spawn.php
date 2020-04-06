@@ -2,20 +2,19 @@
 
 include 'vendor/autoload.php';
 
-use Async\Spawn\Spawn;
-use Async\Spawn\Channel;
-use Async\Spawn\ChannelInterface;
+use Async\Spawn\Channeled;
+use Async\Spawn\ChanneledInterface;
 
-$ipc = new Channel();
+$ipc = new Channeled();
 
 echo "Let's play, ";
 
 $process = \spawn(
-    function (ChannelInterface $channel) {
+    function (ChanneledInterface $channel) {
         $channel->write('ping');
         echo $channel->read();
         echo $channel->read();
-        \usleep(1000);
+        returning();
         return 'The game!';
     }
 )->progress(function ($type, $data) use ($ipc) {

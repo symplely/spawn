@@ -22,7 +22,7 @@ class ChanneledFallbackTest extends TestCase
             $channel->write('ping');
             echo $channel->read();
             echo $channel->read();
-            usleep(5000);
+            returning(1500);
             return 9;
         }, 10, $ipc)
             ->progress(
@@ -171,7 +171,7 @@ class ChanneledFallbackTest extends TestCase
         $input->send(345);
 
         foreach ($process as $type => $data) {
-            $output[] = [$type, $launcher->cleanUp($data)];
+            $output[] = [$type, $launcher->clean($data)];
         }
 
         $this->assertSame('', $process->getOutput());
@@ -199,7 +199,7 @@ class ChanneledFallbackTest extends TestCase
 
         $process = $launcher->getProcess();
         foreach ($process->getIterator($process::ITER_NON_BLOCKING | $process::ITER_KEEP_OUTPUT) as $type => $data) {
-            $output[] = [$type, $launcher->cleanUp($data)];
+            $output[] = [$type, $launcher->clean($data)];
             break;
         }
         $expectedOutput = [
@@ -210,12 +210,12 @@ class ChanneledFallbackTest extends TestCase
         $input->send(123);
 
         foreach ($process->getIterator($process::ITER_NON_BLOCKING | $process::ITER_KEEP_OUTPUT) as $type => $data) {
-            if ('' !== $launcher->cleanUp($data)) {
-                $output[] = [$type, $launcher->cleanUp($data)];
+            if ('' !== $launcher->clean($data)) {
+                $output[] = [$type, $launcher->clean($data)];
             }
         }
 
-        $this->assertSame('123Tjs=', $process->getOutput());
+        $this->assertSame('123', $launcher->clean($process->getOutput()));
         $this->assertFalse($launcher->isRunning());
 
         $expectedOutput = [

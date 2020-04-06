@@ -22,7 +22,7 @@ class ChanneledTest extends TestCase
             $channel->write('ping');
             echo $channel->read();
             echo $channel->read();
-            usleep(5000);
+            returning();
             return 9;
         }, 6)
             ->progress(

@@ -44,7 +44,7 @@ interface LauncherInterface
     public function yielding();
 
     /**
-     * Close out the process stored output/result, and resets any related data.
+     * Close out the process, and reset any related data.
      */
     public function close();
 
@@ -125,13 +125,13 @@ interface LauncherInterface
     public function timeout(callable $callback): LauncherInterface;
 
     /**
-     * Remove `Tjs=` if present from the output.
+     * Remove string data deem invalid.
      *
      * @param mixed $output
      *
      * @return mixed
      */
-    public function cleanUp($output = null);
+    public function clean($output = null);
 
     /**
      * Return and set the last/final output coming from the child process.

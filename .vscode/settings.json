@@ -37,10 +37,13 @@
         "SIGXFSZ",
         "Symplely",
         "autoload",
+        "fgets",
+        "fwrite",
         "libuv",
         "opis",
         "pcntl",
         "phpunit",
-        "symfony"
+        "symfony",
+        "usleep"
     ]
 }
