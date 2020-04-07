@@ -139,8 +139,7 @@ class Launcher implements LauncherInterface
                 }
 
                 if ($signal) {
-                    if ($signal === \SIGINT) {
-                        $launcher->status = 'timeout';
+                    if ($signal === \SIGINT && $launcher->status === 'timeout') {
                         if (!Spawn::isBypass())
                             $launcher->triggerTimeout($launcher->isYield);
                     } else {
