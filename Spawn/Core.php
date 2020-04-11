@@ -322,6 +322,8 @@ if (!\function_exists('spawn')) {
      * @param mixed $withData to return to parent process.
      *
      * @return void|mixed
+     *
+     * @codeCoverageIgnore
      */
     function return_in(int $microsecond = 50, $withData = null)
     {
