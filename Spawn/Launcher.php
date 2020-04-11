@@ -160,8 +160,7 @@ class Launcher implements LauncherInterface
 
                 foreach ([$in, $out, $err, $process] as $handle) {
                     if ($handle instanceof \UV) {
-                        \uv_close($handle, function () {
-                        });
+                        \uv_close($handle);
                     }
                 }
 

@@ -14,12 +14,14 @@ $process = \spawn(
         $channel->write('ping');
         echo $channel->read();
         echo $channel->read();
-        returning();
-        return 'The game!';
+        return \return_in(50, 'The game!');
     }
-)->progress(function ($type, $data) use ($ipc) {
+)->signal(\SIGKILL, function ($signal) {
+    echo "the process has been terminated with 'SIGKILL - " . $signal . "' signal!" . \PHP_EOL;
+})->progress(function ($type, $data) use ($ipc) {
     if ('ping' === $data) {
         $ipc->send('pang' . \PHP_EOL);
+        $ipc->kill();
     } elseif (!$ipc->isClosed()) {
         $ipc->send('pong. ' . \PHP_EOL)
             ->close();

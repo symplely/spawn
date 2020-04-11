@@ -15,7 +15,7 @@ interface ChanneledInterface extends \IteratorAggregate
     /**
      * Setup the `parent` IPC handle.
      *
-     * @param Object|Launcher $handle Use by `send()` and `receive()`
+     * @param Object|Launcher $handle Use by `send()`, `receive()`, and `kill()`
      *
      * @return ChanneledInterface
      */
@@ -56,6 +56,13 @@ interface ChanneledInterface extends \IteratorAggregate
      * @throws \RuntimeException When attempting to send a message into a closed channel.
      */
     public function send($message): ChanneledInterface;
+
+    /**
+     * Stop/kill the channel **child/subprocess** with `SIGKILL` signal.
+     *
+     * @return void
+     */
+    public function kill(): void;
 
     /**
      * Receive the last message from the IPC channel.

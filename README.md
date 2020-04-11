@@ -106,12 +106,10 @@ $process = spawn(function (ChanneledInterface $channel) {
     echo $channel->read(); // same as echo fgets(STDIN);
     echo $channel->read();
 
-    // This is needed otherwise last output will be mixed in with the encoded return data.
+    // The `return_in` is needed otherwise last output will be mixed in with the encoded return data.
     // Or some other processing could be done instead to make this unnecessary.
-    returning(); // same as echo '___uv_spawn___'; usleep(50);
-
-    // all returned `data/results` are encoded, then decode by the parent.
-    return 'return whatever';
+    // All returned `data/results` are encoded, then decode by the parent.
+    return \return_in(50, 'return whatever'); // same as echo '___uv_spawn___'; usleep(50); return 'return whatever';
     }, 0, $ipc)
         ->progress(function ($type, $data) use ($ipc) {
             if ('ping' === $data) {
@@ -151,7 +149,7 @@ $process = Spawn::create(function () {
 
         /////////////////////////////////////////////////////////////
         // This following statement is needed or some other processing performed before returning data.
-        returning($delay); // will print '___uv_spawn___' and sleep for 50 microseconds;
+        \return_in($delay, $with); // will print '___uv_spawn___' and sleep for 50 microseconds with data;
         /////////////////////////////////////////////////////////////
 
         return `result`; // `result` will be encoded, then decoded by parent.
@@ -203,6 +201,8 @@ There's also `->done`, part of `->then()` extended callback method.
 ->run();
 ```
 
+## How to integrate into another project
+
 ```php
 /**
  * Setup for third party integration.
@@ -216,9 +216,64 @@ There's also `->done`, part of `->then()` extended callback method.
  * @param bool $useUv - Turn **on/off** `uv_spawn` for child subprocess operations, will use **libuv** features,
  * if not **true** will use `proc_open` of **symfony/process**.
  */
-spawn_setup($loop, $isYield, $bypass, $useUv)
+\spawn_setup($loop, $isYield, $bypass, $useUv)
 // Or
 Spawn::setup($loop = null, $isYield = true, $bypass = true, $useUv = true);
+
+// For checking and acting on each subprocess status use:
+
+/**
+ * Check if the process has timeout (max. runtime).
+ */
+ ->isTimedOut();
+
+/**
+ * Call the timeout callbacks.
+ */
+->triggerTimeout();
+
+/**
+ * Checks if the process received a signal.
+ */
+->isSignaled();
+
+/**
+ * Call the signal callbacks.
+ */
+->triggerSignal($signal);
+
+/**
+ * Checks if the process is currently running.
+ */
+->isRunning();
+
+/**
+ * Call the progress callbacks on the child subprocess output in real time.
+ */
+->triggerProgress($type, $buffer);
+
+/**
+ * Checks if the process ended successfully.
+ */
+->isSuccessful();
+
+/**
+ * Call the success callbacks.
+ * @return mixed
+ */
+->triggerSuccess();
+
+/**
+ * Checks if the process is terminated.
+ */
+->isTerminated();
+
+/**
+ * Call the error callbacks.
+ * @throws \Exception if error callback array is empty
+ */
+->triggerError();
+
 ```
 
 ## Error handling

@@ -89,7 +89,11 @@ class Channeled implements ChanneledInterface
             throw new \RuntimeException(\sprintf('%s is closed', static::class));
         }
 
-        if ($this->channel !== null && $this->channel->getProcess() instanceof \UVProcess) {
+        if (
+            \is_object($this->channel)
+            && \method_exists($this->channel, 'getProcess')
+            && $this->channel->getProcess() instanceof \UVProcess
+        ) {
             \uv_write($this->channel->getPipeInput(), self::validateInput(__METHOD__, $message), function () {
             });
         } else {
@@ -99,9 +103,21 @@ class Channeled implements ChanneledInterface
         return $this;
     }
 
+    /**
+     * @codeCoverageIgnore
+     */
+    public function kill(): void
+    {
+        if (\is_object($this->channel) && \method_exists($this->channel, 'stop')) {
+            $this->channel->stop();
+        }
+    }
+
     public function receive()
     {
-        return $this->channel->getLast();
+        if (\is_object($this->channel) && \method_exists($this->channel, 'getLast')) {
+            return $this->channel->getLast();
+        }
     }
 
     /**

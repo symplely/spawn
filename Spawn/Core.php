@@ -288,6 +288,8 @@ if (!\function_exists('spawn')) {
      *
      * @return void
      *
+     * @deprecated 1.1.3
+     *
      * @codeCoverageIgnore
      */
     function returning(int $microsecond = 50)
@@ -295,6 +297,41 @@ if (!\function_exists('spawn')) {
         \fwrite(\STDOUT, '___uv_spawn___');
         \fflush(\STDOUT);
         \usleep($microsecond);
+    }
+
+    /**
+     * For use when/before calling the actual `return` keyword, will write `___uv_spawn___` to standard
+     * output and flush, then sleep for `microsecond`.
+     *
+     * The `___uv_spawn___` will be extracted from the encoded `return` data/result before being
+     * processed by other internal routines/methods.
+     *
+     * - For use with subprocess `ipc` interaction.
+     *
+     * - This function is intended to overcome an issue when **`return`ing** the `encode` data/results
+     * from an child subprocess operation.
+     *
+     * - The problem is the fact the last output is being mixed in with the `return` encode
+     * data/results.
+     *
+     * - The parent is given no time to read data stream before the `return`, there was no
+     *  delay or processing preformed between child last output and the `return` statement.
+     *
+     * @param int $microsecond - `50` when using `uv_spawn`, otherwise `1500` or so higher with `proc_open`.
+     *
+     * @param mixed $withData to return to parent process.
+     *
+     * @return void|mixed
+     */
+    function return_in(int $microsecond = 50, $withData = null)
+    {
+        \fwrite(\STDOUT, '___uv_spawn___');
+        \fflush(\STDOUT);
+        \usleep($microsecond);
+        \fflush(\STDOUT);
+
+        if (!\is_null($withData))
+            return $withData;
     }
 
     /**
