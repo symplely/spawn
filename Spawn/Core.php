@@ -267,43 +267,10 @@ if (!\function_exists('spawn')) {
     }
 
     /**
-     * For use before calling the actual `return` keyword. Will write `___uv_spawn___` to standard
-     * output and flush, then sleep for 50 microseconds.
+     * For use when/before calling the actual `return` keyword, will write some `INVALID` data to standard
+     * output and flush, then sleep for `microsecond`, and return the to be encoded `data/result`.
      *
-     * The `___uv_spawn___` will be extracted and from the encoded `return` result
-     * before decoding.
-     *
-     * - For use with subprocess `ipc` interaction.
-     *
-     * - This function is intended to overcome an issue when **`return`ing** data/results
-     * from an child subprocess operation.
-     *
-     * - The problem is the fact the last output is being mixed in with the `return` encode
-     * data/results.
-     *
-     * - The parent is given no time to read data stream before the `return`, there was no
-     *  delay or processing preformed between child last output and the `return` statement.
-     *
-     * @param int $microsecond - `50` when using `uv_spawn`, otherwise `1500` or so with `proc_open`.
-     *
-     * @return void
-     *
-     * @deprecated 1.1.3
-     *
-     * @codeCoverageIgnore
-     */
-    function returning(int $microsecond = 50)
-    {
-        \fwrite(\STDOUT, '___uv_spawn___');
-        \fflush(\STDOUT);
-        \usleep($microsecond);
-    }
-
-    /**
-     * For use when/before calling the actual `return` keyword, will write `___uv_spawn___` to standard
-     * output and flush, then sleep for `microsecond`.
-     *
-     * The `___uv_spawn___` will be extracted from the encoded `return` data/result before being
+     * That `INVALID` data written will be extracted from the encoded `return` data/result before being
      * processed by other internal routines/methods.
      *
      * - For use with subprocess `ipc` interaction.
@@ -327,7 +294,7 @@ if (!\function_exists('spawn')) {
      */
     function return_in(int $microsecond = 50, $withData = null)
     {
-        \fwrite(\STDOUT, '___uv_spawn___');
+        \fwrite(\STDOUT, LauncherInterface::INVALID[1]);
         \fflush(\STDOUT);
         \usleep($microsecond);
         \fflush(\STDOUT);

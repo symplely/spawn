@@ -9,6 +9,15 @@ use Async\Spawn\Process;
 interface LauncherInterface
 {
     /**
+     * Data deem invalid.
+     *
+     * The second item is always used to write data to channels output stream.
+     *
+     * @var array
+     */
+    const INVALID = ['Tjs=', '___uv_spawn___'];
+
+    /**
      * Gets PHP's process ID.
      *
      * @return int
@@ -169,11 +178,13 @@ interface LauncherInterface
     public function getPid(): ?int;
 
     /**
-     * Stops the running process.
+     * Stops the running process, with signal.
+     *
+     * @param int $signal The signal to send to the process, default is SIGKILL (9)
      *
      * @return LauncherInterface
      */
-    public function stop(): LauncherInterface;
+    public function stop(int $signal = \SIGKILL): LauncherInterface;
 
     /**
      * Check if the process has timeout (max. runtime).

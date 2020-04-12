@@ -32,7 +32,6 @@ class Launcher implements LauncherInterface
     protected $in;
     protected $out;
     protected $err;
-    protected $idle;
     protected $timer;
 
     protected $output;
@@ -128,11 +127,6 @@ class Launcher implements LauncherInterface
             $id = (int) $getId;
             $launcher = isset($launch[$id]) ? $launch[$id] : null;
             if ($launcher instanceof Launcher) {
-                if ($launcher->idle instanceof \UVIdle && \uv_is_active($launcher->idle)) {
-                    \uv_idle_stop($launcher->idle);
-                    \uv_unref($launcher->idle);
-                }
-
                 if ($launcher->timer instanceof \UVTimer && \uv_is_active($launcher->timer)) {
                     \uv_timer_stop($launcher->timer);
                     \uv_unref($launcher->timer);
@@ -238,27 +232,25 @@ class Launcher implements LauncherInterface
         $this->startTime = \microtime(true);
 
         if ($this->process instanceof \UVProcess) {
-            $this->idle = \uv_idle_init(self::$uv);
-            \uv_idle_start($this->idle, function ($handle) {
+            if ($this->out instanceof \UVPipe) {
+                @\uv_read_start($this->out, function ($out, $nRead, $buffer) {
+                    if ($nRead > 0) {
+                        $data = $this->clean($buffer);
+                        $this->processOutput .= $data;
+                        $this->displayProgress('out', $data);
+                    }
+                });
+            }
 
-                if ($this->out instanceof \UVPipe) {
-                    @\uv_read_start($this->out, function ($out, $nRead, $buffer) {
-                        if ($nRead > 0) {
-                            $this->processOutput .= $buffer;
-                            $this->displayProgress('out', $buffer);
-                        }
-                    });
-                }
-
-                if ($this->err instanceof \UVPipe) {
-                    @\uv_read_start($this->err, function ($err, $nRead, $buffer) {
-                        if ($nRead > 0) {
-                            $this->processError .= $buffer;
-                            $this->displayProgress('err', $buffer);
-                        }
-                    });
-                }
-            });
+            if ($this->err instanceof \UVPipe) {
+                @\uv_read_start($this->err, function ($err, $nRead, $buffer) {
+                    if ($nRead > 0) {
+                        $data = $this->clean($buffer);
+                        $this->processError .= $data;
+                        $this->displayProgress('err', $data);
+                    }
+                });
+            }
         } else {
             $this->process->start(function ($type, $buffer) {
                 $this->displayProgress($type, $buffer);
@@ -323,7 +315,6 @@ class Launcher implements LauncherInterface
         $this->in = null;
         $this->out = null;
         $this->err = null;
-        $this->idle = null;
         $this->timer = null;
 
         $this->startTime = null;
@@ -359,7 +350,7 @@ class Launcher implements LauncherInterface
     {
         \uv_run(self::$uv, \UV::RUN_DEFAULT);
 
-        return yield $this->getLast();
+        return yield $this->getResult();
     }
 
     public function wait($waitTimer = 1000, bool $useYield = false)
@@ -369,7 +360,7 @@ class Launcher implements LauncherInterface
                 return $this->yieldRun();
 
             \uv_run(self::$uv, \UV::RUN_DEFAULT);
-            return $this->getLast();
+            return $this->getResult();
         } else {
             while ($this->isRunning()) {
                 if ($this->isTimedOut()) {
@@ -393,12 +384,12 @@ class Launcher implements LauncherInterface
         return $this->triggerError($useYield);
     }
 
-    public function stop(): LauncherInterface
+    public function stop(int $signal = \SIGKILL): LauncherInterface
     {
         if ($this->process instanceof \UVProcess && \uv_is_active($this->process)) {
-            \uv_process_kill($this->process, \SIGKILL);
+            \uv_process_kill($this->process, $signal);
         } elseif ($this->process instanceof Process) {
-            $this->process->stop();
+            $this->process->stop(0, $signal);
         }
 
         return $this;
@@ -467,14 +458,14 @@ class Launcher implements LauncherInterface
     protected function display($buffer = null)
     {
         if ($this->showOutput) {
-            \printf('%s', \htmlspecialchars((string) $this->realDecoded($buffer), ENT_COMPAT, 'UTF-8'));
+            \printf('%s', \htmlspecialchars((string) $this->decoded($buffer), ENT_COMPAT, 'UTF-8'));
         }
     }
 
     public function clean($output = null)
     {
         return \is_string($output)
-            ? \str_replace(['Tjs=', '___uv_spawn___'], '', $output)
+            ? \str_replace(LauncherInterface::INVALID, '', $output)
             : $output;
     }
 
@@ -496,10 +487,10 @@ class Launcher implements LauncherInterface
         return $output;
     }
 
-    protected function realDecoded($buffer = null)
+    protected function decoded($buffer = null, $errorSet = false)
     {
         if (!empty($buffer)) {
-            return $this->clean($this->decode($buffer));
+            return $this->clean($this->decode($buffer, $errorSet));
         }
     }
 
@@ -513,7 +504,7 @@ class Launcher implements LauncherInterface
                 $processOutput = $this->process->getOutput();
             }
 
-            $this->output = $this->clean($this->decode($processOutput, true));
+            $this->output = $this->decoded($processOutput, true);
 
             $cleaned = $this->output;
             $replaceWith = $this->getResult();
@@ -543,7 +534,7 @@ class Launcher implements LauncherInterface
 
     public function getLast()
     {
-        return $this->realDecoded($this->lastResult);
+        return $this->decoded($this->lastResult);
     }
 
     public function getResult()
@@ -552,7 +543,7 @@ class Launcher implements LauncherInterface
             $this->rawLastResult = $this->lastResult;
         }
 
-        $this->lastResult = $this->realDecoded($this->rawLastResult);
+        $this->lastResult = $this->decoded($this->rawLastResult);
         return $this->lastResult;
     }
 
@@ -649,7 +640,7 @@ class Launcher implements LauncherInterface
     public function triggerProgress(string $type, string $buffer)
     {
         if (\count($this->progressCallbacks) > 0) {
-            $liveOutput = $this->realDecoded($buffer);
+            $liveOutput = $this->decoded($buffer);
             foreach ($this->progressCallbacks as $progressCallback) {
                 $progressCallback($type, $liveOutput);
             }
@@ -680,6 +671,13 @@ class Launcher implements LauncherInterface
             return $this->triggerError($isYield);
         } else {
             $output = $this->getOutput();
+        }
+
+        if (\is_base64($output) !== false) {
+            // @codeCoverageIgnoreStart
+            $this->rawLastResult = $this->clean($output);
+            $output = $this->decoded($this->rawLastResult);
+            // @codeCoverageIgnoreEnd
         }
 
         if ($isYield)
