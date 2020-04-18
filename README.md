@@ -4,9 +4,11 @@
 
 An simply __`uv_spawn`__ wrapper API to _execute_ and _manage_ **sub-processes**, parallel/asynchronous PHP for Blocking I/O.
 
-This package uses features of [`libuv`](https://github.com/libuv/libuv), the PHP extension [UV](https://github.com/bwoebi/php-uv), of the  **Node.js**  library. It's `uv_spawn` function is used to launch processes. The performance it a much better alternative to pcntl-extension, or the use of `proc_open`. The package will fallback to use [symfony/process], if `libuv` is not installed.
+This package uses features of [`libuv`](https://github.com/libuv/libuv), the PHP extension [UV](https://github.com/bwoebi/php-uv), of the  **Node.js**  library. It's `uv_spawn` function is used to launch processes. The performance it a much better alternative to pcntl-extension, or the use of `proc_open`. This package will fallback to use [symfony/process], if `libuv` is not installed.
 
-This package is part of our [symplely/coroutine](https://github.com/symplely/coroutine) package for handling any **blocking i/o** process, that can not be handled by [**Coroutine**](https://github.com/symplely/coroutine) natively.
+This package is part of our [symplely/coroutine](https://symplely.github.io/coroutine/) package for handling any **blocking i/o** process, that can not be handled by [**Coroutine**](https://symplely.github.io/coroutine/) natively.
+
+To learn more about **libuv** features read the online tutorial [book](https://nikhilm.github.io/uvbook/index.html).
 
 ## Installation
 
