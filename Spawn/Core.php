@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Async\Spawn\Channeled;
+use Async\Spawn\ChanneledInterface;
 use Async\Spawn\Spawn;
 use Async\Spawn\LauncherInterface;
 
@@ -234,6 +235,16 @@ if (!\function_exists('spawn')) {
     }
 
     /**
+     * return a new **Spawn** based `Channel` instance.
+     *
+     * @return ChanneledInterface
+     */
+    function spawn_channel(): ChanneledInterface
+    {
+        return new Channeled;
+    }
+
+    /**
      * Check if a string is base64 valid, or has `encoded` mixed data.
      *
      * @param string $input
@@ -264,6 +275,21 @@ if (!\function_exists('spawn')) {
         }
 
         return false;
+    }
+
+    /**
+     * Check if base64 valid, if so decodes and creates a `PHP` value from the
+     * **serialized** decoded data representation.
+     *
+     * @param string $input
+     *
+     * @return mixed
+     *
+     * @codeCoverageIgnore
+     */
+    function deserialize($input)
+    {
+        return \is_base64($input) ? \unserialize(\base64_decode($input)) : $input;
     }
 
     /**

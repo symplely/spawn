@@ -93,10 +93,10 @@ $process->displayOn()->run();
 ```php
 include 'vendor/autoload.php';
 
-use Async\Spawn\Channeled;
 use Async\Spawn\ChanneledInterface;
 
-$ipc = new Channeled();
+// return a new `Channeled` instance.
+$ipc = \spawn_channel();;
 
 $process = spawn(function (ChanneledInterface $channel) {
     // Setup the channel resources if needed, defaults to `STDIN`, `STDOUT`, and `STDERR`.

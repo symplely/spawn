@@ -16,7 +16,7 @@ class ChanneledTest extends TestCase
 
     public function testSimpleChanneled()
     {
-        $ipc = new Channeled();
+        $ipc = \spawn_channel();
 
         $process = \spawn(function (ChanneledInterface $channel) {
             $channel->write('ping');
