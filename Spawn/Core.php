@@ -278,6 +278,32 @@ if (!\function_exists('spawn')) {
     }
 
     /**
+     * Create a encoded base64 valid string from a **serializable** data value.
+     *
+     * @param mixed $input
+     *
+     * @return string
+     *
+     * @codeCoverageIgnore
+     */
+    function serializer($input)
+    {
+        return \base64_encode(\serialize($input));
+    }
+
+    /**
+     * Decodes and creates a `PHP` value from the **serialized** data.
+     *
+     * @param string $input
+     *
+     * @return mixed
+     */
+    function deserializer($input)
+    {
+        return @\unserialize(\base64_decode($input));
+    }
+
+    /**
      * Check if base64 valid, if so decodes and creates a `PHP` value from the
      * **serialized** decoded data representation.
      *
@@ -289,7 +315,7 @@ if (!\function_exists('spawn')) {
      */
     function deserialize($input)
     {
-        return \is_base64($input) ? \unserialize(\base64_decode($input)) : $input;
+        return \is_base64($input) ? \deserializer($input) : $input;
     }
 
     /**

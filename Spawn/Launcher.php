@@ -472,7 +472,7 @@ class Launcher implements LauncherInterface
     protected function decode($output, $errorSet = false)
     {
         if (\is_string($output)) {
-            $realOutput = @\unserialize(\base64_decode($output));
+            $realOutput = \deserializer($output);
             if (!$realOutput) {
                 $realOutput = $output;
                 if ($errorSet) {
@@ -482,7 +482,6 @@ class Launcher implements LauncherInterface
 
             return $realOutput;
         }
-
 
         return $output;
     }
@@ -665,28 +664,27 @@ class Launcher implements LauncherInterface
     {
         $this->status = true;
 
+        $result = null;
         if ($this->getResult() && !$this->getErrorOutput()) {
-            $output = $this->lastResult;
+            $result = $this->lastResult;
         } elseif ($this->getErrorOutput()) {
             return $this->triggerError($isYield);
-        } else {
-            $output = $this->getOutput();
         }
 
-        if (\is_base64($output) !== false) {
+        if (\is_base64($result) !== false) {
             // @codeCoverageIgnoreStart
-            $this->rawLastResult = $this->clean($output);
-            $output = $this->decoded($this->rawLastResult);
+            $this->rawLastResult = $this->clean($result);
+            $result = $this->decoded($this->rawLastResult);
             // @codeCoverageIgnoreEnd
         }
 
         if ($isYield)
-            return $this->yieldSuccess($output);
+            return $this->yieldSuccess($result);
 
         foreach ($this->successCallbacks as $callback)
-            $callback($output);
+            $callback($result);
 
-        return $output;
+        return $result;
     }
 
     public function triggerError(bool $isYield = false)
