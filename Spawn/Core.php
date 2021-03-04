@@ -19,7 +19,7 @@ if (!defined('IS_LINUX'))
 if (!defined('IS_PHP8'))
     \define('IS_PHP8', ((float)phpversion() >= 8.0));
 
-if (\IS_WINDOWS && \function_exists('uv_loop_new')) {
+if (\IS_WINDOWS) {
     /**
      * The SIGUSR1 signal is sent to a process to indicate user-defined conditions.
      */
