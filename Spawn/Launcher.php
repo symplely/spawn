@@ -512,6 +512,12 @@ class Launcher implements LauncherInterface
                     $replaceWith = (string) $replaceWith;
                 }
 
+                // @codeCoverageIgnoreStart
+                if (\is_base64($replaceWith)) {
+                    $replaceWith = \deserializer($replaceWith);
+                }
+                // @codeCoverageIgnoreEnd
+
                 $this->output = \str_replace($this->rawLastResult, $replaceWith, $cleaned);
             }
         }
