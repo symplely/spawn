@@ -9,18 +9,20 @@ use PHPUnit\Framework\TestCase;
 
 class ErrorHandlingTest extends TestCase
 {
-	protected function setUp(): void
+    protected function setUp(): void
     {
+        if (!\function_exists('uv_loop_new'))
+            $this->markTestSkipped('Test skipped "uv_loop_new" missing.');
         Spawn::setup(null, false, false, true);
     }
 
     public function testIt_can_handle_exceptions_via_catch_callback()
     {
         $process = \spawn(function () {
-                throw new \Exception('test');
-            })->catch(function (\Exception $e) {
-                $this->assertRegExp('/test/', $e->getMessage());
-            });
+            throw new \Exception('test');
+        })->catch(function (\Exception $e) {
+            $this->assertRegExp('/test/', $e->getMessage());
+        });
 
         \spawn_run($process);
         $this->assertFalse($process->isSuccessful());
@@ -32,10 +34,10 @@ class ErrorHandlingTest extends TestCase
     public function testIt_can_handle_exceptions_via_catch_callback_yield()
     {
         $process = spawn(function () {
-                throw new \Exception('test');
-            })->catch(function (\Exception $e) {
-                $this->assertRegExp('/test/', $e->getMessage());
-            });
+            throw new \Exception('test');
+        })->catch(function (\Exception $e) {
+            $this->assertRegExp('/test/', $e->getMessage());
+        });
 
         $yield = $process->yielding();
         $this->assertInstanceOf(SerializableException::class, $yield->current());
@@ -49,7 +51,7 @@ class ErrorHandlingTest extends TestCase
         $process = spawn(function () {
             fwrite(\STDERR, 'test');
         })->catch(function (SpawnError $error) {
-           $this->assertStringContainsString('test', $error->getMessage());
+            $this->assertStringContainsString('test', $error->getMessage());
         });
 
         spawn_run($process);

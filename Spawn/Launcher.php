@@ -508,8 +508,7 @@ class Launcher implements LauncherInterface
             $cleaned = $this->output;
             $replaceWith = $this->getResult();
             if (\is_string($cleaned) && \strpos($cleaned, $this->rawLastResult) !== false) {
-                if ((float)phpversion() >= 8.0) {
-                    print_r($replaceWith);
+                if (\IS_PHP8) {
                     $replaceWith = (string) $replaceWith;
                 }
 

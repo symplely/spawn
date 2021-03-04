@@ -10,6 +10,8 @@ class ContainerTest extends TestCase
 {
     protected function setUp(): void
     {
+        if (!\function_exists('uv_loop_new'))
+            $this->markTestSkipped('Test skipped "uv_loop_new" missing.');
         Spawn::setup(null, false, false, true);
     }
 
