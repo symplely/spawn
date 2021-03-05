@@ -514,7 +514,8 @@ class Launcher implements LauncherInterface
 
                 // @codeCoverageIgnoreStart
                 if (\is_base64($replaceWith)) {
-                    $replaceWith = \deserializer($replaceWith);
+                    $replace = \deserializer($replaceWith);
+                    $replaceWith = $replace === false ? $replaceWith : $replace;
                 }
                 // @codeCoverageIgnoreEnd
 
