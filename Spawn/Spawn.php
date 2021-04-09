@@ -31,7 +31,7 @@ class Spawn
     protected static $myPid = null;
 
     /** @var string */
-    protected static $executable = 'php';
+    protected static $executable = \PHP_BINARY;
 
     /** @var bool */
     protected static $isYield = false;

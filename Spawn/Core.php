@@ -41,6 +41,17 @@ if (!defined('EOL'))
 if (!defined('CRLF'))
     \define('CRLF', "\r\n");
 
+if (!defined('IS_CLI')) {
+    /**
+     * Check if php is running from cli (command line).
+     */
+    \define(
+        'IS_CLI',
+        \defined('STDIN') ||
+            (empty($_SERVER['REMOTE_ADDR']) && !isset($_SERVER['HTTP_USER_AGENT']) && \count($_SERVER['argv']) > 0)
+    );
+}
+
 /**
  * Open the file for read-only access.
  */

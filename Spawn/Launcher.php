@@ -458,7 +458,15 @@ class Launcher implements LauncherInterface
     protected function display($buffer = null)
     {
         if ($this->showOutput) {
-            \printf('%s', \htmlspecialchars((string) $this->decoded($buffer), ENT_COMPAT, 'UTF-8'));
+            if (\IS_CLI) {
+                $output = $this->decoded($buffer);
+            } else {
+                // @codeCoverageIgnoreStart
+                $output = \htmlspecialchars((string) $this->decoded($buffer), ENT_COMPAT, 'UTF-8');
+                // @codeCoverageIgnoreEnd
+            }
+
+            \printf('%s', $output);
         }
     }
 
