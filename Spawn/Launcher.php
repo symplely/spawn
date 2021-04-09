@@ -515,7 +515,7 @@ class Launcher implements LauncherInterface
 
             $cleaned = $this->output;
             $replaceWith = $this->getResult();
-            if (\is_string($cleaned) && \strpos($cleaned, $this->rawLastResult) !== false) {
+            if (\is_string($cleaned) && @\strpos($cleaned, (\IS_MACOS ? (string) $this->rawLastResult : $this->rawLastResult)) !== false) {
                 if (\IS_PHP8) {
                     $replaceWith = (string) $replaceWith;
                 }
