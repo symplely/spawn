@@ -14,7 +14,7 @@ $process = \spawn(
         $channel->write('ping');
         echo $channel->read();
         echo $channel->read();
-        return \return_in(50, 'The game!');
+        return \flush_value('The game!');
     }
 )->signal(\SIGKILL, function ($signal) {
     echo "the process has been terminated with 'SIGKILL - " . $signal . "' signal!" . \PHP_EOL;

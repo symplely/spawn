@@ -9,7 +9,7 @@ use PHPUnit\Framework\TestCase;
 
 class ChanneledFallbackTest extends TestCase
 {
-	protected function setUp(): void
+    protected function setUp(): void
     {
         Spawn::setup(null, false, false, false);
     }
@@ -22,7 +22,7 @@ class ChanneledFallbackTest extends TestCase
             $channel->write('ping');
             echo $channel->read();
             echo $channel->read();
-            return \return_in(1500, 9);
+            return \flush_value(9, 1500);
         }, 10, $ipc)
             ->progress(
                 function ($type, $data) use ($ipc) {
@@ -55,7 +55,7 @@ class ChanneledFallbackTest extends TestCase
                 function ($type, $data) use ($ipc) {
                     if ('ping' === $data) {
                         $ipc->close()
-                        ->send('pang' . \PHP_EOL);
+                            ->send('pang' . \PHP_EOL);
                     }
                 }
             );
@@ -232,11 +232,11 @@ class ChanneledFallbackTest extends TestCase
         $p = spawn(function (ChanneledInterface $ipc) {
             $ipc->passthru();
         }, 10, $stream)
-        ->progress(function ($type, $data) use ($stream) {
-            if ('hello' === $data) {
-                fclose($stream);
-            }
-        });
+            ->progress(function ($type, $data) use ($stream) {
+                if ('hello' === $data) {
+                    fclose($stream);
+                }
+            });
 
         $p->run();
 

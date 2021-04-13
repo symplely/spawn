@@ -14,7 +14,7 @@ $process = \spawn(
         $channel->write('ping');
         echo $channel->read();
         echo $channel->read();
-        return \return_in(50, 'The game!');
+        return \flush_value('The game!');
     }
 )->progress(function ($type, $data) use ($ipc) {
     if ('ping' === $data) {

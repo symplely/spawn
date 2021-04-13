@@ -391,7 +391,7 @@ if (!\function_exists('spawn')) {
      */
     function serializer($input)
     {
-        return \base64_encode(\serialize($input));
+        return \base64_encode(@\serialize($input));
     }
 
     /**
@@ -439,23 +439,22 @@ if (!\function_exists('spawn')) {
      * - The parent is given no time to read data stream before the `return`, there was no
      *  delay or processing preformed between child last output and the `return` statement.
      *
+     * @param mixed $with to return to parent process.
      * @param int $microsecond - `50` when using `uv_spawn`, otherwise `1500` or so higher with `proc_open`.
-     *
-     * @param mixed $withData to return to parent process.
      *
      * @return void|mixed
      *
      * @codeCoverageIgnore
      */
-    function return_in(int $microsecond = 50, $withData = null)
+    function flush_value($with = null, int $microsecond = 50)
     {
         \fwrite(\STDOUT, LauncherInterface::INVALID[1]);
         \fflush(\STDOUT);
         \usleep($microsecond);
         \fflush(\STDOUT);
 
-        if (!\is_null($withData))
-            return $withData;
+        if (!\is_null($with))
+            return $with;
     }
 
     /**

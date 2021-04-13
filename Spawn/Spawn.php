@@ -107,7 +107,7 @@ class Spawn
 
         $useYield = ($isYield === null) ? self::$isYield : $isYield;
 
-        if (\function_exists('uv_default_loop') && self::$useUv) {
+        if (\IS_UV && self::$useUv) {
             return Launcher::add(
                 $task,
                 (int) self::getId(),

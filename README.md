@@ -108,10 +108,10 @@ $process = spawn(function (ChanneledInterface $channel) {
     echo $channel->read(); // same as echo fgets(STDIN);
     echo $channel->read();
 
-    // The `return_in` is needed otherwise last output will be mixed in with the encoded return data.
+    // The `flush_value` is needed otherwise last output will be mixed in with the encoded return data.
     // Or some other processing could be done instead to make this unnecessary.
     // All returned `data/results` are encoded, then decode by the parent.
-    return \return_in(50, 'return whatever'); // same as echo '___uv_spawn___'; usleep(50); return 'return whatever';
+    return \flush_value('return whatever', 50); // same as echo '___uv_spawn___'; usleep(50); return 'return whatever';
     }, 0, $ipc)
         ->progress(function ($type, $data) use ($ipc) {
             if ('ping' === $data) {
@@ -151,9 +151,9 @@ $process = Spawn::create(function () {
 
         /////////////////////////////////////////////////////////////
         // This following statement is needed or some other processing performed before returning data.
-        \return_in($delay, $with); // will print '___uv_spawn___' and sleep for 50 microseconds with data;
+        return \flush_value($with, $delay); // will print '___uv_spawn___' and sleep for 50 microseconds with data;
         /////////////////////////////////////////////////////////////
-
+        // Or Just
         return `result`; // `result` will be encoded, then decoded by parent.
     }, int $timeout = 0 , $input = null)
     ->then(function ($result) {
