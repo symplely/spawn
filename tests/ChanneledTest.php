@@ -24,9 +24,8 @@ class ChanneledTest extends TestCase
             $channel->write('ping');
             echo $channel->read();
             echo $channel->read();
-
-            return \flush_value(9);
-        }, 6)
+            return 9;
+        }, 10)
             ->progress(
                 function ($type, $data) use ($ipc) {
                     if ('ping' === $data) {
@@ -40,8 +39,8 @@ class ChanneledTest extends TestCase
 
         $ipc->setHandle($process);
         \spawn_run($process);
-        $this->assertSame('pingpangpong9', $process->getOutput());
-        $this->assertSame(9, $ipc->receive());
+        $this->assertSame('pingpangpong', $process->getOutput());
+        $this->assertSame('pong', $ipc->receive());
         $this->assertSame(9, \spawn_result($process));
     }
 }

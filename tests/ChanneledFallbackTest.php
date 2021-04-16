@@ -37,8 +37,8 @@ class ChanneledFallbackTest extends TestCase
 
         $ipc->setHandle($process);
         \spawn_run($process);
-        $this->assertSame('pingpangpong9', $process->getOutput());
-        $this->assertSame(9, $ipc->receive());
+        $this->assertSame('pingpangpong', $process->getOutput());
+        $this->assertSame('pong', $ipc->receive());
         $this->assertSame(9, \spawn_result($process));
     }
 

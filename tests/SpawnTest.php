@@ -31,7 +31,7 @@ class SpawnTest extends TestCase
         $this->assertFalse($process->isRunning());
         $this->assertTrue($process->isSuccessful());
         $this->assertEquals(2, $counter);
-        $this->assertEquals(2, \spawn_output($process));
+        $this->assertNull(\spawn_output($process));
     }
 
     public function testIt_can_handle_success_yield()
@@ -56,7 +56,7 @@ class SpawnTest extends TestCase
         $this->assertFalse($process->isRunning());
         $this->assertTrue($process->isSuccessful());
         $this->assertFalse($process->isTerminated());
-        $this->assertEquals(2, \spawn_output($process));
+        $this->assertNull(\spawn_output($process));
         //$this->assertEquals(2, $counter);
     }
 
@@ -146,9 +146,9 @@ class SpawnTest extends TestCase
             }
         );
         $p->run();
-        $this->assertSame('hello child3', $p->getOutput());
+        $this->assertSame('hello child', $p->getOutput());
         $this->assertSame(3, $p->getResult());
-        $this->assertSame(3, $p->getLast());
+        $this->assertSame('child', $p->getLast());
     }
 
     public function testGetOutputFromShell()

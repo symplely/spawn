@@ -94,7 +94,7 @@ class Launcher implements LauncherInterface
     public static function add(
         $task,
         int $getId = null,
-        string $executable = 'php',
+        string $executable = \PHP_BINARY,
         string $containerScript = '',
         string $autoload = '',
         bool $isInitialized = false,
@@ -236,7 +236,11 @@ class Launcher implements LauncherInterface
                 @\uv_read_start($this->out, function ($out, $nRead, $buffer) {
                     if ($nRead > 0) {
                         $data = $this->clean($buffer);
-                        $this->processOutput .= $data;
+                        if (\is_string($data) && !\is_base64($data)) {
+                            $this->processOutput .= $data;
+                            $this->rawLastResult = $buffer;
+                        }
+
                         $this->displayProgress('out', $data);
                     }
                 });
@@ -253,7 +257,14 @@ class Launcher implements LauncherInterface
             }
         } else {
             $this->process->start(function ($type, $buffer) {
-                $this->displayProgress($type, $buffer);
+                $data = $this->clean($buffer);
+                if (!\is_base64($data) && $type === 'out') {
+                    $this->processOutput .= $data;
+                    $this->rawLastResult = $buffer;
+                } elseif ($type === 'err')
+                    $this->processError .= $data;
+
+                $this->displayProgress($type, $data);
             });
 
             $this->pid = $this->process->getPid();
@@ -278,7 +289,7 @@ class Launcher implements LauncherInterface
             $process = clone $this->process;
             $launcher = $this->create($process, $this->id, $this->timeout);
         } else {
-            $launcher = self::add($this->task, $this->id, 'php', '', '', false, (int) $this->timeout, $this->isYield);
+            $launcher = self::add($this->task, $this->id, \PHP_BINARY, '', '', false, (int) $this->timeout, $this->isYield);
             if ($this->isRunning())
                 $this->stop();
         }
@@ -458,14 +469,12 @@ class Launcher implements LauncherInterface
     protected function display($buffer = null)
     {
         $output = $this->decoded($buffer);
-        if ($this->showOutput) {
-            if (\is_string($output)) {
-                // @codeCoverageIgnoreStart
-                if (!\IS_CLI)
-                    $output = \htmlspecialchars($output, \ENT_COMPAT, 'UTF-8');
-                // @codeCoverageIgnoreEnd
-                \printf('%s', $output);
-            }
+        if ($this->showOutput && \is_string($output) && !\is_base64($output)) {
+            // @codeCoverageIgnoreStart
+            if (!\IS_CLI)
+                $output = \htmlspecialchars($output, \ENT_COMPAT, 'UTF-8');
+            // @codeCoverageIgnoreEnd
+            \printf('%s', $output);
         }
     }
 
@@ -503,31 +512,10 @@ class Launcher implements LauncherInterface
     public function getOutput()
     {
         if (!$this->output) {
-            if ($this->process instanceof \UVProcess) {
-                $processOutput = $this->processOutput;
-                $this->processOutput = null;
-            } else {
-                $processOutput = $this->process->getOutput();
-            }
+            $processOutput = $this->processOutput;
+            $this->processOutput = null;
 
-            $this->output = $this->decoded($processOutput, true);
-
-            $cleaned = $this->output;
-            $replaceWith = $this->getResult();
-            if (\is_string($cleaned) && @\strpos($cleaned, (\IS_MACOS ? (string) $this->rawLastResult : $this->rawLastResult)) !== false) {
-                if (\IS_PHP8) {
-                    $replaceWith = (string) $replaceWith;
-                }
-
-                // @codeCoverageIgnoreStart
-                if (\is_base64($replaceWith)) {
-                    $replace = \deserializer($replaceWith);
-                    $replaceWith = $replace === false ? $replaceWith : $replace;
-                }
-                // @codeCoverageIgnoreEnd
-
-                $this->output = \str_replace($this->rawLastResult, $replaceWith, $cleaned);
-            }
+            $this->output = \deserialize($this->decoded($processOutput, true));
         }
 
         return $this->output;
@@ -536,13 +524,8 @@ class Launcher implements LauncherInterface
     public function getErrorOutput()
     {
         if (!$this->errorOutput) {
-            if ($this->process instanceof \UVProcess) {
-                $processOutput = $this->processError;
-                $this->processError = null;
-            } else {
-                $processOutput = $this->process->getErrorOutput();
-            }
-
+            $processOutput = $this->processError;
+            $this->processError = null;
             $this->errorOutput = $this->decode($processOutput);
         }
 
@@ -551,17 +534,12 @@ class Launcher implements LauncherInterface
 
     public function getLast()
     {
-        return $this->decoded($this->lastResult);
+        return $this->decoded($this->rawLastResult);
     }
 
     public function getResult()
     {
-        if (!$this->rawLastResult) {
-            $this->rawLastResult = $this->lastResult;
-        }
-
-        $this->lastResult = $this->decoded($this->rawLastResult);
-        return $this->lastResult;
+        return $this->decoded($this->lastResult);
     }
 
     public function getProcess()
@@ -690,10 +668,7 @@ class Launcher implements LauncherInterface
         }
 
         if (\is_base64($result) !== false) {
-            // @codeCoverageIgnoreStart
-            $this->rawLastResult = $this->clean($result);
-            $result = $this->decoded($this->rawLastResult);
-            // @codeCoverageIgnoreEnd
+            $this->lastResult = $result = $this->decoded($this->clean($result));
         }
 
         if ($isYield)

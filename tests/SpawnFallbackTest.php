@@ -9,7 +9,7 @@ use PHPUnit\Framework\TestCase;
 
 class SpawnFallbackTest extends TestCase
 {
-	protected function setUp(): void
+    protected function setUp(): void
     {
         Spawn::setup(null, false, false, false);
     }
@@ -68,7 +68,7 @@ class SpawnFallbackTest extends TestCase
 
         $this->assertSame('123', $p1->getErrorOutput());
         $this->assertSame('', $p1->getProcess()->getOutput());
-        $this->assertSame('', $p2->getErrorOutput());
+        $this->assertNull($p2->getErrorOutput());
         $this->assertSame('456', $p2->getOutput());
     }
 
@@ -148,7 +148,7 @@ class SpawnFallbackTest extends TestCase
             }
         );
         $p->run();
-        $this->assertSame('hello child3', $p->getOutput());
+        $this->assertSame('hello child', $p->getOutput());
         $this->assertSame(3, $p->getResult());
     }
 
