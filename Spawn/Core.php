@@ -418,11 +418,8 @@ if (!\function_exists('spawn')) {
     }
 
     /**
-     * For use when/before calling the actual `return` keyword, will write some `INVALID` data to standard
-     * output and flush, then sleep for `microsecond`, and return the to be encoded `data/result`.
-     *
-     * That `INVALID` data written will be extracted from the encoded `return` data/result before being
-     * processed by other internal routines/methods.
+     * For use when/before calling the actual `return` keyword, will flush, then sleep for `microsecond`,
+     * and return the to be encoded `data/result`.
      *
      * - For use with subprocess `ipc` interaction.
      *
@@ -444,7 +441,6 @@ if (!\function_exists('spawn')) {
      */
     function flush_value($with = null, int $microsecond = 50)
     {
-        \fwrite(\STDOUT, LauncherInterface::INVALID[1]);
         \fflush(\STDOUT);
         \usleep($microsecond);
         \fflush(\STDOUT);

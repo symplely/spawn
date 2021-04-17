@@ -24,7 +24,7 @@ class ChanneledTest extends TestCase
             $channel->write('ping');
             echo $channel->read();
             echo $channel->read();
-            return 9;
+            return \flush_value(9);
         }, 10)
             ->progress(
                 function ($type, $data) use ($ipc) {

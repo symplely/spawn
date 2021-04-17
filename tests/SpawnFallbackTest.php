@@ -228,7 +228,7 @@ class SpawnFallbackTest extends TestCase
         $this->assertFalse($process2->isRunning());
 
         // Ensure that restart returned a new process by check that the output is different
-        $this->assertNotEquals($process1->getOutput(), $process2->getOutput());
+        $this->assertFalse($process1 === $process2);
     }
 
     public function testWaitReturnAfterRunCMD()
