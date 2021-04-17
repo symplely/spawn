@@ -444,6 +444,7 @@ if (!\function_exists('spawn')) {
         \fflush(\STDOUT);
         \usleep($microsecond);
         \fflush(\STDOUT);
+        \usleep($microsecond);
 
         if (!\is_null($with))
             return $with;
