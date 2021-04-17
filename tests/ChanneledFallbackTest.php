@@ -22,7 +22,7 @@ class ChanneledFallbackTest extends TestCase
             $channel->write('ping');
             echo $channel->read();
             echo $channel->read();
-            return \flush_value(9);
+            return \flush_value(9, 1500);
         }, 10, $ipc)
             ->progress(
                 function ($type, $data) use ($ipc) {

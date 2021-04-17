@@ -148,7 +148,6 @@ class SpawnTest extends TestCase
         $p->run();
         $this->assertSame('hello child', $p->getOutput());
         $this->assertSame(3, $p->getResult());
-        $this->assertSame('child', $p->getLast());
     }
 
     public function testGetOutputFromShell()
