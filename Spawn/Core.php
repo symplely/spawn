@@ -353,8 +353,6 @@ if (!\function_exists('spawn')) {
      * @param string $input
      *
      * @return bool|null if `null` **$input** is mixed with `encode` data.
-     *
-     * @codeCoverageIgnore
      */
     function is_base64($input): ?bool
     {
@@ -413,8 +411,6 @@ if (!\function_exists('spawn')) {
      * @param string $input
      *
      * @return mixed
-     *
-     * @codeCoverageIgnore
      */
     function deserialize($input)
     {
