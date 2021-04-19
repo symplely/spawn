@@ -33,7 +33,7 @@ try {
 
   $output = $task(\spawn_channel());
 
-  \fwrite(\STDOUT, \serializer(\flush_value($output)));
+  \fwrite(\STDOUT, \serializer($output));
 
   exit(0);
 } catch (\Throwable $exception) {
