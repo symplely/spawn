@@ -23,7 +23,7 @@ class ChanneledTest extends TestCase
       $channel->send('ping');
       echo $channel->recv();
       echo $channel->recv();
-      return 9;
+      return flush_value(9);
     }, 10)
       ->progress(
         function ($type, $data) use ($ipc) {
