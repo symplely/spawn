@@ -500,15 +500,15 @@ function uv_signal_stop(UVSignal $handle)
  * @return UVProcess
  */
 function uv_spawn(
-    UVLoop $loop,
-    string $command,
-    array $args,
-    array $stdio,
-    string $cwd,
-    array $env = array(),
-    callable $callback,
-    int $flags = 0,
-    array $options = []
+  UVLoop $loop,
+  string $command,
+  array $args,
+  array $stdio,
+  string $cwd,
+  array $env = array(),
+  callable $callback,
+  int $flags = 0,
+  array $options = []
 ) {
 }
 

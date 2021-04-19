@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Async\Spawn;
 
 use Closure;
-use Async\Spawn\Launcher;
+use Async\Spawn\Future;
 use Async\Spawn\Process;
-use Async\Spawn\LauncherInterface;
+use Async\Spawn\FutureInterface;
 use Opis\Closure\SerializableClosure;
 
 /**
@@ -92,7 +92,7 @@ class Spawn
      * - `$input` is not available when using `libuv` features.
      * @param null|bool $isYield
      *
-     * @return LauncherInterface
+     * @return FutureInterface
      * @throws LogicException In case the process is running, and not using `libuv` features.
      */
     public static function create(
@@ -100,7 +100,7 @@ class Spawn
         int $timeout = 0,
         $input = null,
         bool $isYield = null
-    ): LauncherInterface {
+    ): FutureInterface {
         if (!self::$isInitialized) {
             self::init();
         }
@@ -108,7 +108,7 @@ class Spawn
         $useYield = ($isYield === null) ? self::$isYield : $isYield;
 
         if (\IS_UV && self::$useUv) {
-            return Launcher::add(
+            return Future::add(
                 $task,
                 (int) self::getId(),
                 self::$executable,
@@ -119,6 +119,9 @@ class Spawn
                 $useYield
             );
         } else {
+            if ($input instanceof Channeled)
+                $input = $input->setState();
+
             if (\is_callable($task) && !\is_string($task) && !\is_array($task)) {
                 $process = new Process([
                     self::$executable,
@@ -134,7 +137,7 @@ class Spawn
                 // @codeCoverageIgnoreEnd
             }
 
-            return Launcher::create($process, (int) self::getId(), $timeout, $useYield);
+            return Future::create($process, (int) self::getId(), $timeout, $useYield);
         }
     }
 
@@ -155,7 +158,7 @@ class Spawn
     public static function setup($loop, bool $isYield = true, bool $bypass = true, bool $useUv = true): void
     {
         if ($loop instanceof \UVLoop) {
-            Launcher::uvLoop($loop);
+            Future::uvLoop($loop);
         }
 
         self::$bypass = $bypass;
@@ -186,11 +189,11 @@ class Spawn
      * - This feature is only available with Symfony `process` class.
      * - `$input` is not available when using `libuv` features.
      *
-     * @return LauncherInterface
+     * @return FutureInterface
      *
      * @codeCoverageIgnore
      */
-    public static function daemon($task, $channeled = null): LauncherInterface
+    public static function daemon($task, $channeled = null): FutureInterface
     {
         if (\is_string($task)) {
             $shadow = (('\\' === \IS_WINDOWS) ? 'start /b ' : 'nohup ') . $task;
