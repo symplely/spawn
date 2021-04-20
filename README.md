@@ -133,12 +133,12 @@ echo \spawn_output($process); // pingpangpongreturn whatever
 // Or
 echo \spawn_result($process); // return whatever
 // Or
-echo $ipc->receive(); // return whatever
+echo $process->getLast(); // pong
 ```
 
 ## Event hooks
 
-When creating asynchronous processes, you'll get an instance of `LauncherInterface` returned.
+When creating asynchronous processes, you'll get an instance of `FutureInterface` returned.
 You can add the following event hooks on a process.
 
 ```php

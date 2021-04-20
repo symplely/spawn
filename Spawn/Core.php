@@ -342,7 +342,7 @@ if (!\function_exists('spawn')) {
    *
    * @return ChanneledInterface
    */
-  function spawn_channel(): ChanneledInterface
+  function spawn_channel(): Channeled
   {
     return new Channeled;
   }

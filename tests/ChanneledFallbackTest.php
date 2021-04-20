@@ -103,7 +103,7 @@ class ChanneledFallbackTest extends TestCase
       $input->close();
     });
 
-    $process = spawn(function (ChanneledInterface $ipc) {
+    $process = spawn(function (Channeled $ipc) {
       $ipc->passthru();
     }, 10, $input);
 
@@ -229,7 +229,7 @@ class ChanneledFallbackTest extends TestCase
     $stream = fopen('php://memory', 'r+');
     fwrite($stream, 'hello');
     rewind($stream);
-    $p = spawn(function (ChanneledInterface $ipc) {
+    $p = spawn(function (Channeled $ipc) {
       $ipc->passthru();
     }, 10, $stream)
       ->progress(function ($type, $data) use ($stream) {
