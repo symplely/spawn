@@ -123,21 +123,21 @@ class Spawn
                 $input = $input->setState();
 
             if (\is_callable($task) && !\is_string($task) && !\is_array($task)) {
-                $process = new Process([
+                $future = new Process([
                     self::$executable,
                     self::$containerScript,
                     self::$autoload,
                     self::encodeTask($task),
                 ], null, null, $input, $timeout);
             } elseif (\is_string($task)) {
-                $process = Process::fromShellCommandline($task, null, null, $input, $timeout);
+                $future = Process::fromShellCommandline($task, null, null, $input, $timeout);
             } else {
                 // @codeCoverageIgnoreStart
-                $process = new Process($task, null, null, $input, $timeout);
+                $future = new Process($task, null, null, $input, $timeout);
                 // @codeCoverageIgnoreEnd
             }
 
-            return Future::create($process, (int) self::getId(), $timeout, $useYield);
+            return Future::create($future, (int) self::getId(), $timeout, $useYield);
         }
     }
 

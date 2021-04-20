@@ -9,7 +9,7 @@ use PHPUnit\Framework\TestCase;
 
 class ContainerFallbackTest extends TestCase
 {
-	protected function setUp(): void
+    protected function setUp(): void
     {
         Spawn::setup(null, false, false, false);
     }
@@ -23,12 +23,12 @@ class ContainerFallbackTest extends TestCase
         $serializedClosure = \base64_encode(\Opis\Closure\serialize(new SerializableClosure(function () {
             echo 'child';
         })));
-        $process = new Process(explode(" ", "php {$bootstrap} {$autoload} {$serializedClosure}"));
+        $future = new Process(explode(" ", "php {$bootstrap} {$autoload} {$serializedClosure}"));
 
-        $process->start();
+        $future->start();
 
-        $process->wait();
+        $future->wait();
 
-        $this->assertStringContainsString('child', $process->getOutput());
+        $this->assertStringContainsString('child', $future->getOutput());
     }
 }

@@ -25,12 +25,12 @@ class ContainerTest extends TestCase
             echo 'child';
         })));
 
-        $process = Spawn::create(['php', $bootstrap, $autoload, $serializedClosure]);
+        $future = Spawn::create(['php', $bootstrap, $autoload, $serializedClosure]);
 
-        $process->start();
+        $future->start();
 
-        $process->wait();
+        $future->wait();
 
-        $this->assertStringContainsString('child', $process->getOutput());
+        $this->assertStringContainsString('child', $future->getOutput());
     }
 }

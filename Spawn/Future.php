@@ -539,7 +539,6 @@ class Future implements FutureInterface
 
   public function getResult()
   {
-    $this->isFinal($this->lastResult);
     return $this->decoded($this->lastResult);
   }
 
@@ -665,8 +664,6 @@ class Future implements FutureInterface
         $this->messages->enqueue($buffer['message']);
       if ($this->process instanceof Process)
         $liveOutput = $this->rawLastResult = $buffer['message'];
-    } elseif ($this->isFinal($buffer)) {
-      $liveOutput = null;
     } else {
       $liveOutput = $this->lastResult = $buffer;
     }
@@ -691,25 +688,9 @@ class Future implements FutureInterface
   function isMessage($input): bool
   {
     return \is_array($input) && isset($input['message']);
-  }
-
-  /**
-   * Check and set, if input is the **final** returned `value` from a `Future`.
-   *
-   * @param mixed $input
-   *
-   * @return bool
-   *
-   * @codeCoverageIgnore
-   */
-  protected function isFinal($input): bool
-  {
-    //$output = $input;
     $input = \deserialize($input);
-    if (\is_array($input) && isset($input[0]) && ($input[0] === 'final')) {
-
-      $this->lastResult = $input[1];
-      // $this->processOutput = \str_replace($this->rawLastResult, '', $this->processOutput);
+    if (\is_array($input) && isset($input[0]) && ($input[0] === 'message')) {
+      $this->messages->enqueue($input[1]);
       return true;
     }
 
@@ -744,7 +725,6 @@ class Future implements FutureInterface
     if (\is_base64($result) !== false) {
       $this->lastResult = $this->clean($result);
       $result = $this->decoded($this->lastResult);
-      $result = $this->isFinal($result) ? $this->lastResult : $result;
     }
 
     if ($isYield)

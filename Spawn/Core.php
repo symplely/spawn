@@ -294,11 +294,11 @@ if (!\function_exists('spawn')) {
    *
    * @param callable $executable
    * @param int $timeout
-   * @param Channeled|mixed|null $processChanneled Set the input content as `stream`, `resource`, `scalar`,
+   * @param Channeled|mixed|null $futureChanneled Set the input content as `stream`, `resource`, `scalar`,
    *  `Traversable`, or `null` for no input.
    * - The content will be passed to the underlying process standard input.
    * - This feature is only available with Symfony `process` class.
-   * - `$processChanneled` is not available when using `libuv` features.
+   * - `$futureChanneled` is not available when using `libuv` features.
    * @param null|bool $isYield
    *
    * @return FutureInterface
@@ -307,34 +307,34 @@ if (!\function_exists('spawn')) {
   function spawn(
     $executable,
     int $timeout = 0,
-    $processChanneled = null,
+    $futureChanneled = null,
     bool $isYield = null
   ): FutureInterface {
-    return Spawn::create($executable, $timeout, $processChanneled, $isYield);
+    return Spawn::create($executable, $timeout, $futureChanneled, $isYield);
   }
 
   /**
    * Start the process and wait to terminate, and return any results.
    */
-  function spawn_run(FutureInterface $process, bool $displayOutput = false)
+  function spawn_run(FutureInterface $future, bool $displayOutput = false)
   {
-    return $displayOutput ? $process->displayOn()->run() : $process->run();
+    return $displayOutput ? $future->displayOn()->run() : $future->run();
   }
 
   /**
    * return the full output of the process.
    */
-  function spawn_output(FutureInterface $process)
+  function spawn_output(FutureInterface $future)
   {
-    return $process->getOutput();
+    return $future->getOutput();
   }
 
   /**
    * return the result of the process.
    */
-  function spawn_result(FutureInterface $process)
+  function spawn_result(FutureInterface $future)
   {
-    return $process->getResult();
+    return $future->getResult();
   }
 
   /**

@@ -19,7 +19,7 @@ class ChanneledTest extends TestCase
   {
     $ipc = \spawn_channel();
 
-    $process = \spawn(function (ChanneledInterface $channel) {
+    $future = \spawn(function (ChanneledInterface $channel) {
       $channel->send('ping');
       echo $channel->recv();
       echo $channel->recv();
@@ -36,10 +36,10 @@ class ChanneledTest extends TestCase
         }
       );
 
-    $ipc->setHandle($process);
-    \spawn_run($process);
-    $this->assertSame('pingpangpong', $process->getOutput());
-    $this->assertSame('pong', $process->getLast());
-    $this->assertSame(9, \spawn_result($process));
+    $ipc->setHandle($future);
+    \spawn_run($future);
+    $this->assertSame('pingpangpong', $future->getOutput());
+    $this->assertSame('pong', $future->getLast());
+    $this->assertSame(9, \spawn_result($future));
   }
 }

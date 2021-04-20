@@ -67,9 +67,9 @@ include 'vendor/autoload.php';
 
 use Async\Spawn\Spawn;
 
-$process = \spawn($function, $timeout, $channel)
+$future = \spawn($function, $timeout, $channel)
 // Or
-$process = Spawn::create(function () use ($thing) {
+$future = Spawn::create(function () use ($thing) {
     // Do a thing
     }, $timeout, $channel)
     ->then(function ($output) {
@@ -78,14 +78,14 @@ $process = Spawn::create(function () use ($thing) {
         // Handle exception
 });
 
-\spawn_run($process);
+\spawn_run($future);
 // Or
-$process->run();
+$future->run();
 
 // Second option can be used to set to display child output, default is false
-\spawn_run($process, true);
+\spawn_run($future, true);
 // Or
-$process->displayOn()->run();
+$future->displayOn()->run();
 ```
 
 ## Channel - Transfer messages between `Child` and `Parent` process
@@ -98,7 +98,7 @@ use Async\Spawn\ChanneledInterface;
 // return a new `Channeled` instance.
 $ipc = \spawn_channel();;
 
-$process = spawn(function (ChanneledInterface $channel) {
+$future = spawn(function (ChanneledInterface $channel) {
     // Setup the channel resources if needed, defaults to `STDIN`, `STDOUT`, and `STDERR`.
     // For methods ->read(), ->write('message'), ->error('error').
     // This does not need to be called already using defaults.
@@ -123,17 +123,17 @@ $process = spawn(function (ChanneledInterface $channel) {
         });
 
 // Setup the channel instance.
-$ipc->setHandle($process)
+$ipc->setHandle($future)
 
-$result = spawn_run($process);
+$result = spawn_run($future);
 
 echo $result; // return whatever
 // Or
-echo \spawn_output($process); // pingpangpongreturn whatever
+echo \spawn_output($future); // pingpangpongreturn whatever
 // Or
-echo \spawn_result($process); // return whatever
+echo \spawn_result($future); // return whatever
 // Or
-echo $process->getLast(); // pong
+echo $future->getLast(); // pong
 ```
 
 ## Event hooks
@@ -142,9 +142,9 @@ When creating asynchronous processes, you'll get an instance of `FutureInterface
 You can add the following event hooks on a process.
 
 ```php
-$process = spawn($function, $timeout, $channel)
+$future = spawn($function, $timeout, $channel)
 // Or
-$process = Spawn::create(function () {
+$future = Spawn::create(function () {
         // The second argument is optional, Defaults no timeout,
         // it sets The maximum amount of time a process may take to finish in seconds
         // The third is optional input pipe to pass to subprocess, only for `proc_open`
@@ -282,7 +282,7 @@ Spawn::setup($loop = null, $isYield = true, $bypass = true, $useUv = true);
 
 If an `Exception` or `Error` is thrown from within a child process, it can be caught per process by specifying a callback in the `->catch()` method.
 
-If there's no error handler added, the error will be thrown in the parent process when calling `spawn_run()` or `$process->run()`.
+If there's no error handler added, the error will be thrown in the parent process when calling `spawn_run()` or `$future->run()`.
 
 If the child process would unexpectedly stop without throwing an `Throwable`, the output written to `stderr` will be wrapped and thrown as `Async\Spawn\SpawnError` in the parent process.
 

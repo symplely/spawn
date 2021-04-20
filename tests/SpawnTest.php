@@ -19,44 +19,44 @@ class SpawnTest extends TestCase
   {
     $counter = 0;
 
-    $process = \spawn(function () {
+    $future = \spawn(function () {
       return 2;
     })->then(function (int $output) use (&$counter) {
       $counter = $output;
     });
 
-    $this->assertTrue($process->isRunning());
-    $this->assertFalse($process->isTimedOut());
-    \spawn_run($process);
-    $this->assertFalse($process->isRunning());
-    $this->assertTrue($process->isSuccessful());
+    $this->assertTrue($future->isRunning());
+    $this->assertFalse($future->isTimedOut());
+    \spawn_run($future);
+    $this->assertFalse($future->isRunning());
+    $this->assertTrue($future->isSuccessful());
     $this->assertEquals(2, $counter);
-    $this->assertNull(\spawn_output($process));
+    $this->assertNull(\spawn_output($future));
   }
 
   public function testIt_can_handle_success_yield()
   {
     $counter = 0;
 
-    $process = spawn(function () {
+    $future = spawn(function () {
       return 2;
     }, 10, null, true)->then(function (int $output) use (&$counter) {
       $counter = $output;
     });
 
-    $yield = $process->yielding();
+    $yield = $future->yielding();
     $this->assertEquals(0, $counter);
 
     $this->assertTrue($yield instanceof \Generator);
-    $this->assertFalse($process->isSuccessful());
+    $this->assertFalse($future->isSuccessful());
 
-    $this->assertTrue($process->isRunning());
-    $this->assertFalse($process->isTimedOut());
+    $this->assertTrue($future->isRunning());
+    $this->assertFalse($future->isTimedOut());
     $this->assertEquals(2, $yield->current());
-    $this->assertFalse($process->isRunning());
-    $this->assertTrue($process->isSuccessful());
-    $this->assertFalse($process->isTerminated());
-    $this->assertNull(\spawn_output($process));
+    $this->assertFalse($future->isRunning());
+    $this->assertTrue($future->isSuccessful());
+    $this->assertFalse($future->isTerminated());
+    $this->assertNull(\spawn_output($future));
     //$this->assertEquals(2, $counter);
   }
 
@@ -64,17 +64,17 @@ class SpawnTest extends TestCase
   {
     $counter = 0;
 
-    $process = Spawn::create(function () {
+    $future = Spawn::create(function () {
       usleep(1000000);
     }, 1)->timeout(function () use (&$counter) {
       $counter += 1;
     });
 
-    $this->assertTrue($process->isRunning());
-    $this->assertFalse($process->isTimedOut());
-    $process->run();
-    $this->assertTrue($process->isTimedOut());
-    $this->assertFalse($process->isRunning());
+    $this->assertTrue($future->isRunning());
+    $this->assertFalse($future->isTimedOut());
+    $future->run();
+    $this->assertTrue($future->isTimedOut());
+    $this->assertFalse($future->isRunning());
     $this->assertEquals(1, $counter);
   }
 
@@ -82,56 +82,56 @@ class SpawnTest extends TestCase
   {
     $counter = 0;
 
-    $process = Spawn::create(function () {
+    $future = Spawn::create(function () {
       usleep(1000000);
     }, 1, null, true)->timeout(function () use (&$counter) {
       $counter += 1;
     });
 
-    $this->assertTrue($process->isRunning());
-    $this->assertFalse($process->isTimedOut());
-    $yield = $process->yielding();
+    $this->assertTrue($future->isRunning());
+    $this->assertFalse($future->isTimedOut());
+    $yield = $future->yielding();
     $this->assertTrue($yield instanceof \Generator);
     $this->assertNull($yield->current());
-    $this->assertTrue($process->isTimedOut());
-    $this->assertFalse($process->isRunning());
-    $this->assertFalse($process->isSuccessful());
-    $this->assertTrue($process->isTerminated());
+    $this->assertTrue($future->isTimedOut());
+    $this->assertFalse($future->isRunning());
+    $this->assertFalse($future->isSuccessful());
+    $this->assertTrue($future->isTerminated());
     //$this->assertEquals(1, $counter);
   }
 
   public function testStart()
   {
-    $process = Spawn::create(function () {
+    $future = Spawn::create(function () {
       usleep(1000);
     });
 
-    $this->assertTrue($process->getProcess() instanceof \UVProcess);
-    $this->assertIsNumeric($process->getId());
-    $this->assertTrue($process->isRunning());
-    $this->assertFalse($process->isTimedOut());
-    $this->assertFalse($process->isTerminated());
-    $this->assertFalse($process->isSuccessful());
-    $process->start();
-    $this->assertTrue($process->isRunning());
-    $this->assertFalse($process->isTimedOut());
-    $this->assertFalse($process->isTerminated());
-    $this->assertFalse($process->isSuccessful());
-    $process->wait();
-    $this->assertFalse($process->isRunning());
-    $this->assertTrue($process->isSuccessful());
-    $this->assertFalse($process->isTerminated());
-    $this->assertFalse($process->isTimedOut());
+    $this->assertTrue($future->getProcess() instanceof \UVProcess);
+    $this->assertIsNumeric($future->getId());
+    $this->assertTrue($future->isRunning());
+    $this->assertFalse($future->isTimedOut());
+    $this->assertFalse($future->isTerminated());
+    $this->assertFalse($future->isSuccessful());
+    $future->start();
+    $this->assertTrue($future->isRunning());
+    $this->assertFalse($future->isTimedOut());
+    $this->assertFalse($future->isTerminated());
+    $this->assertFalse($future->isSuccessful());
+    $future->wait();
+    $this->assertFalse($future->isRunning());
+    $this->assertTrue($future->isSuccessful());
+    $this->assertFalse($future->isTerminated());
+    $this->assertFalse($future->isTimedOut());
   }
 
   public function testLiveOutput()
   {
-    $process = Spawn::create(function () {
+    $future = Spawn::create(function () {
       echo 'hello child';
       usleep(1000);
     });
     $this->expectOutputString('hello child');
-    $process->displayOn()->run();
+    $future->displayOn()->run();
   }
 
   public function testGetResult()
@@ -210,111 +210,131 @@ class SpawnTest extends TestCase
 
   public function testWaitReturnAfterRunCMD()
   {
-    $process = Spawn::create('echo foo');
-    $process->run();
-    $this->assertStringContainsString('foo', $process->getOutput());
+    $future = Spawn::create('echo foo');
+    $future->run();
+    $this->assertStringContainsString('foo', $future->getOutput());
   }
 
   public function testStop()
   {
-    $process = Spawn::create(function () {
+    $future = Spawn::create(function () {
       \sleep(10);
     })->start();
-    $this->assertTrue($process->isRunning());
-    $process->stop();
-    $process->wait();
-    $this->assertFalse($process->isRunning());
+    $this->assertTrue($future->isRunning());
+    $future->stop();
+    $future->wait();
+    $this->assertFalse($future->isRunning());
   }
 
   public function testSignal()
   {
     $counter = 0;
 
-    $process = Spawn::create(function () {
+    $future = Spawn::create(function () {
       \sleep(10);
     })->signal(\SIGKILL, function () use (&$counter) {
       $counter += 1;
     });
 
-    $process->stop();
-    $this->assertTrue($process->isRunning());
-    $process->run();
-    $this->assertFalse($process->isRunning());
-    $this->assertFalse($process->isSuccessful());
-    $this->assertTrue($process->isTerminated());
-    $this->assertTrue($process->isSignaled());
+    $future->stop();
+    $this->assertTrue($future->isRunning());
+    $future->run();
+    $this->assertFalse($future->isRunning());
+    $this->assertFalse($future->isSuccessful());
+    $this->assertTrue($future->isTerminated());
+    $this->assertTrue($future->isSignaled());
     $this->assertEquals(1, $counter);
-    $this->assertEquals(\SIGKILL, $process->getSignaled());
+    $this->assertEquals(\SIGKILL, $future->getSignaled());
   }
 
   public function testSignalYield()
   {
     $counter = 0;
 
-    $process = Spawn::create(function () {
+    $future = Spawn::create(function () {
       \sleep(10);
     }, 0, null, true)->signal(\SIGKILL, function () use (&$counter) {
       $counter += 1;
     });
 
-    $process->stop();
-    $this->assertTrue($process->isRunning());
-    $yield = $process->yielding();
+    $future->stop();
+    $this->assertTrue($future->isRunning());
+    $yield = $future->yielding();
     $this->assertTrue($yield instanceof \Generator);
     $this->assertNull($yield->current());
-    $this->assertFalse($process->isRunning());
-    $this->assertFalse($process->isSuccessful());
-    $this->assertTrue($process->isTerminated());
-    $this->assertTrue($process->isSignaled());
+    $this->assertFalse($future->isRunning());
+    $this->assertFalse($future->isSuccessful());
+    $this->assertTrue($future->isTerminated());
+    $this->assertTrue($future->isSignaled());
     //$this->assertEquals(1, $counter);
-    $this->assertEquals(\SIGKILL, $process->getSignaled());
+    $this->assertEquals(\SIGKILL, $future->getSignaled());
   }
 
   public function testIsSuccessfulCMD()
   {
-    $process = Spawn::create('echo foo');
-    $process->run();
-    $this->assertTrue($process->isSuccessful());
+    $future = Spawn::create('echo foo');
+    $future->run();
+    $this->assertTrue($future->isSuccessful());
   }
 
   public function testGetPid()
   {
-    $process = Spawn::create(function () {
+    $future = Spawn::create(function () {
       sleep(10);
     }, 1);
-    $process->stop();
-    $this->assertGreaterThan(0, $process->getPid());
-    $process->run();
+    $future->stop();
+    $this->assertGreaterThan(0, $future->getPid());
+    $future->run();
   }
 
   public function testRestart()
   {
-    $process1 = Spawn::create(function () {
+    $future1 = Spawn::create(function () {
       return getmypid();
     });
 
     $this->expectOutputRegex('/[\d]/');
-    $process1->displayOn()->run();
-    $process2 = $process1->restart();
+    $future1->displayOn()->run();
+    $future2 = $future1->restart();
 
     $this->expectOutputRegex('//');
-    $process2->displayOff()->wait(); // wait for output
+    $future2->displayOff()->wait(); // wait for output
 
     // Ensure that both processed finished and the output is numeric
-    $this->assertFalse($process1->isRunning());
-    $this->assertFalse($process2->isRunning());
+    $this->assertFalse($future1->isRunning());
+    $this->assertFalse($future2->isRunning());
 
     // Ensure that restart returned a new process by check that the output is different
-    $this->assertFalse($process1 === $process2);
+    $this->assertFalse($future1 === $future2);
   }
 
   public function testLargeOutputs()
   {
-    $process = Spawn::create(function () {
+    $future = Spawn::create(function () {
       return \str_repeat('abcd', 1024 * 512);
     }, 1);
 
-    $process->run();
-    $this->assertEquals(\str_repeat('abcd', 1024 * 512), $process->getOutput());
+    $future->run();
+    $this->assertEquals(\str_repeat('abcd', 1024 * 512), $future->getOutput());
+  }
+
+  public function testCanUseClassParentProcess()
+  {
+    /** @var MyClass $result */
+    $result = null;
+    $future = Spawn::create(function () {
+      $class = new MyClass();
+
+      $class->property = true;
+
+      return $class;
+    })->then(function (MyClass $class) use (&$result) {
+      $result = $class;
+    });
+
+    $future->run();
+    $future->close();
+    $this->assertInstanceOf(MyClass::class, $result);
+    $this->assertTrue($result->property);
   }
 }

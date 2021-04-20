@@ -9,7 +9,7 @@ $ipc = new Channeled();
 
 echo "Let's play, ";
 
-$process = \spawn(
+$future = \spawn(
   function (ChanneledInterface $channel) {
     $channel->send('ping');
     echo $channel->recv();
@@ -25,8 +25,8 @@ $process = \spawn(
   }
 });
 
-$ipc->setHandle($process);
-$result = \spawn_run($process);
-echo \spawn_output($process) . \PHP_EOL;
-echo \spawn_result($process) . \PHP_EOL;
+$ipc->setHandle($future);
+$result = \spawn_run($future);
+echo \spawn_output($future) . \PHP_EOL;
+echo \spawn_result($future) . \PHP_EOL;
 echo $result . \PHP_EOL;

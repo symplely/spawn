@@ -18,7 +18,7 @@ class ChanneledFallbackTest extends TestCase
   {
     $ipc = new Channeled();
 
-    $process = \spawn(function (Channeled $channel) {
+    $future = \spawn(function (Channeled $channel) {
       $channel->write('ping');
       echo $channel->read();
       echo $channel->read();
@@ -35,18 +35,18 @@ class ChanneledFallbackTest extends TestCase
         }
       );
 
-    $ipc->setHandle($process);
-    \spawn_run($process);
-    $this->assertSame('pingpangpong', $process->getOutput());
-    $this->assertSame('pong', $process->getLast());
-    $this->assertSame(9, \spawn_result($process));
+    $ipc->setHandle($future);
+    \spawn_run($future);
+    $this->assertSame('pingpangpong', $future->getOutput());
+    $this->assertSame('pong', $future->getLast());
+    $this->assertSame(9, \spawn_result($future));
   }
 
   public function testSimpleChanneledError()
   {
     $ipc = new Channeled();
 
-    $process = \spawn(function (Channeled $channel) {
+    $future = \spawn(function (Channeled $channel) {
       $channel->write('ping');
       \usleep(1000);
       echo $channel->read();
@@ -61,7 +61,7 @@ class ChanneledFallbackTest extends TestCase
       );
 
     $this->expectException(\RuntimeException::class);
-    \spawn_run($process);
+    \spawn_run($future);
   }
 
   public function testChanneledWithCallable()
@@ -83,16 +83,16 @@ class ChanneledFallbackTest extends TestCase
     $input = new Channeled();
     $input->then($stream)
       ->send($stream());
-    $process = spawn(function (Channeled $ipc) {
+    $future = spawn(function (Channeled $ipc) {
       echo $ipc->read(3);
     }, 10, $input)
       ->progress(function ($type, $data) use ($input) {
         $input->close();
       });
 
-    $input->setHandle($process);
-    $process->run();
-    $this->assertSame('123', \spawn_output($process));
+    $input->setHandle($future);
+    $future->run();
+    $this->assertSame('123', \spawn_output($future));
   }
 
   public function testChanneledWithGenerator()
@@ -103,15 +103,15 @@ class ChanneledFallbackTest extends TestCase
       $input->close();
     });
 
-    $process = spawn(function (Channeled $ipc) {
+    $future = spawn(function (Channeled $ipc) {
       $ipc->passthru();
     }, 10, $input);
 
-    $input->setHandle($process);
-    $process->start();
+    $input->setHandle($future);
+    $future->start();
     $input->send('ping');
-    $process->wait();
-    $this->assertSame('pingpong', $process->getOutput());
+    $future->wait();
+    $this->assertSame('pingpong', $future->getOutput());
   }
 
   public function testChanneledThen()
@@ -122,7 +122,7 @@ class ChanneledFallbackTest extends TestCase
       ++$i;
     });
 
-    $process = spawn(function () {
+    $future = spawn(function () {
       echo 123;
       echo fread(STDIN, 1);
       echo 456;
@@ -133,11 +133,11 @@ class ChanneledFallbackTest extends TestCase
         }
       });
 
-    $input->setHandle($process);
-    $process->run();
+    $input->setHandle($future);
+    $future->run();
 
     $this->assertSame(0, $i, 'Channeled->then callback should be called only when the input *becomes* empty');
-    $this->assertSame('123456', $process->getOutput());
+    $this->assertSame('123456', $future->getOutput());
   }
 
   public function testIteratorOutput()
@@ -157,30 +157,30 @@ class ChanneledFallbackTest extends TestCase
     $Future->start();
     $output = [];
 
-    $process = $Future->getProcess();
-    foreach ($process as $type => $data) {
+    $future = $Future->getProcess();
+    foreach ($future as $type => $data) {
       $output[] = [$type, $data];
       break;
     }
     $expectedOutput = [
-      [$process::OUT, '123'],
+      [$future::OUT, '123'],
     ];
     $this->assertSame($expectedOutput, $output);
 
     $input->send(345);
 
-    foreach ($process as $type => $data) {
+    foreach ($future as $type => $data) {
       $output[] = [$type, $Future->clean($data)];
     }
 
-    $this->assertSame('', $process->getOutput());
+    $this->assertSame('', $future->getOutput());
     $this->assertFalse($Future->isRunning());
 
     $expectedOutput = [
-      [$process::OUT, '123'],
-      [$process::ERR, '234'],
-      [$process::OUT, '345'],
-      [$process::ERR, '456'],
+      [$future::OUT, '123'],
+      [$future::ERR, '234'],
+      [$future::OUT, '345'],
+      [$future::ERR, '456'],
     ];
     $this->assertSame($expectedOutput, $output);
   }
@@ -196,30 +196,30 @@ class ChanneledFallbackTest extends TestCase
     $Future->start();
     $output = [];
 
-    $process = $Future->getProcess();
-    foreach ($process->getIterator($process::ITER_NON_BLOCKING | $process::ITER_KEEP_OUTPUT) as $type => $data) {
+    $future = $Future->getProcess();
+    foreach ($future->getIterator($future::ITER_NON_BLOCKING | $future::ITER_KEEP_OUTPUT) as $type => $data) {
       $output[] = [$type, $Future->clean($data)];
       break;
     }
     $expectedOutput = [
-      [$process::OUT, ''],
+      [$future::OUT, ''],
     ];
     $this->assertSame($expectedOutput, $output);
 
     $input->send(123);
 
-    foreach ($process->getIterator($process::ITER_NON_BLOCKING | $process::ITER_KEEP_OUTPUT) as $type => $data) {
+    foreach ($future->getIterator($future::ITER_NON_BLOCKING | $future::ITER_KEEP_OUTPUT) as $type => $data) {
       if ('' !== $Future->clean($data)) {
         $output[] = [$type, $Future->clean($data)];
       }
     }
 
-    $this->assertSame('123', $Future->clean($process->getOutput()));
+    $this->assertSame('123', $Future->clean($future->getOutput()));
     $this->assertFalse($Future->isRunning());
 
     $expectedOutput = [
-      [$process::OUT, ''],
-      [$process::OUT, '123'],
+      [$future::OUT, ''],
+      [$future::OUT, '123'],
     ];
     $this->assertSame($expectedOutput, $output);
   }
