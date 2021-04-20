@@ -376,6 +376,22 @@ if (!\function_exists('spawn')) {
   }
 
   /**
+   *  Returns an array of all `user defined` global variables, without `super globals`.
+   *
+   * @param array $vars nly **get_defined_vars()** should be passed in.
+   * @return array
+   */
+  function get_globals(array $vars): array
+  {
+    global $____spawn_globals____;
+
+    $global = @\array_diff($vars, array(array()));
+    unset($global['argc']);
+    $____spawn_globals____ = $global;
+    return $global;
+  }
+
+  /**
    * Check if a string is base64 valid, or has `encoded` mixed data.
    *
    * @param string $input

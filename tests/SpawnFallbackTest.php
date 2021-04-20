@@ -296,4 +296,11 @@ class SpawnFallbackTest extends TestCase
         $this->assertInstanceOf(MyClass::class, $result);
         $this->assertTrue($result->property);
     }
+
+    public function testGetGlobals()
+    {
+        $global = \get_globals(get_defined_vars());
+        $this->assertIsArray($global);
+        $this->assertEquals($GLOBALS['____spawn_globals____'], $global);
+    }
 }
