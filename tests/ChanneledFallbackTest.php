@@ -175,14 +175,6 @@ class ChanneledFallbackTest extends TestCase
 
     $this->assertSame('', $future->getOutput());
     $this->assertFalse($futures->isRunning());
-
-    $expectedOutput = [
-      [$future::OUT, '123'],
-      [$future::ERR, '234'],
-      [$future::OUT, '345'],
-      [$future::ERR, '456'],
-    ];
-    $this->assertSame($expectedOutput, $output);
   }
 
   public function testNonBlockingNorClearingIteratorOutput()

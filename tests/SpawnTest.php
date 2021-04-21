@@ -6,6 +6,8 @@ use Async\Spawn\Spawn;
 use Async\Spawn\SpawnError;
 use PHPUnit\Framework\TestCase;
 
+$test = 300;
+
 class SpawnTest extends TestCase
 {
   protected function setUp(): void
@@ -328,9 +330,23 @@ class SpawnTest extends TestCase
     $this->assertTrue($result->property);
   }
 
-  public function testGetGlobals()
+  public function setGlobal()
   {
-    $global = \get_globals(get_defined_vars());
+    global $test;
+    $test = 100;
+    set_globals(['test' => 2, 'other' => 'foo']);
+    $this->assertEquals($GLOBALS['test'], 2);
+    $test = 4;
+    $this->assertEquals($GLOBALS['test'], 4);
+  }
+
+  public function testSetGetGlobals()
+  {
+    global $test;
+    $this->setGlobal();
+    $this->assertEquals($GLOBALS['other'], 'foo');
+    $global = get_globals(get_defined_vars());
     $this->assertIsArray($global);
+    $this->assertEquals($global['test'], 4);
   }
 }

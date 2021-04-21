@@ -393,8 +393,6 @@ if (!\function_exists('spawn')) {
    *
    * @param array $spawn_globals from `get_globals(get_defined_vars());`.
    * @return void
-   *
-   * @codeCoverageIgnore
    */
   function set_globals(array $spawn_globals): void
   {
