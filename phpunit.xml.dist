@@ -20,6 +20,7 @@
             <directory suffix=".php">Spawn/</directory>
             <exclude>
                 <file>./Spawn/Container.php</file>
+                <file>./Spawn/UVContainer.php</file>
                 <file>./Spawn/UV.php</file>
                 <file>./Spawn/UVFunctions.php</file>
                 <file>./Spawn/UVHandles.php</file>

@@ -22,7 +22,7 @@ class ChanneledFallbackTest extends TestCase
       $channel->write('ping');
       echo $channel->read();
       echo $channel->read();
-      return \flush_value(9, 1500);
+      return flush_value(9, 1500);
     }, 10, $ipc)
       ->progress(
         function ($type, $data) use ($ipc) {
@@ -144,7 +144,7 @@ class ChanneledFallbackTest extends TestCase
   {
     $input = new Channeled();
 
-    $Future = spawn(function (Channeled $ipc) {
+    $futures = spawn(function (Channeled $ipc) {
       $ipc->write(123);
       usleep(5000);
       $ipc->error(234);
@@ -154,10 +154,10 @@ class ChanneledFallbackTest extends TestCase
       $ipc->error(456);
     }, 300, $input);
 
-    $Future->start();
+    $futures->start();
     $output = [];
 
-    $future = $Future->getProcess();
+    $future = $futures->getProcess();
     foreach ($future as $type => $data) {
       $output[] = [$type, $data];
       break;
@@ -170,11 +170,11 @@ class ChanneledFallbackTest extends TestCase
     $input->send(345);
 
     foreach ($future as $type => $data) {
-      $output[] = [$type, $Future->clean($data)];
+      $output[] = [$type, $futures->clean($data)];
     }
 
     $this->assertSame('', $future->getOutput());
-    $this->assertFalse($Future->isRunning());
+    $this->assertFalse($futures->isRunning());
 
     $expectedOutput = [
       [$future::OUT, '123'],
@@ -189,16 +189,16 @@ class ChanneledFallbackTest extends TestCase
   {
     $input = new Channeled();
 
-    $Future = spawn(function (Channeled $ipc) {
+    $futures = spawn(function (Channeled $ipc) {
       $ipc->write($ipc->read(3));
     }, 10, $input);
 
-    $Future->start();
+    $futures->start();
     $output = [];
 
-    $future = $Future->getProcess();
+    $future = $futures->getProcess();
     foreach ($future->getIterator($future::ITER_NON_BLOCKING | $future::ITER_KEEP_OUTPUT) as $type => $data) {
-      $output[] = [$type, $Future->clean($data)];
+      $output[] = [$type, $futures->clean($data)];
       break;
     }
     $expectedOutput = [
@@ -209,13 +209,13 @@ class ChanneledFallbackTest extends TestCase
     $input->send(123);
 
     foreach ($future->getIterator($future::ITER_NON_BLOCKING | $future::ITER_KEEP_OUTPUT) as $type => $data) {
-      if ('' !== $Future->clean($data)) {
-        $output[] = [$type, $Future->clean($data)];
+      if ('' !== $futures->clean($data)) {
+        $output[] = [$type, $futures->clean($data)];
       }
     }
 
-    $this->assertSame('123', $Future->clean($future->getOutput()));
-    $this->assertFalse($Future->isRunning());
+    $this->assertSame('123', $futures->clean($future->getOutput()));
+    $this->assertFalse($futures->isRunning());
 
     $expectedOutput = [
       [$future::OUT, ''],
@@ -240,6 +240,6 @@ class ChanneledFallbackTest extends TestCase
 
     $p->run();
 
-    $this->assertSame('hello', $p->getOutput());
+    $this->assertSame('hello', $p->getLast());
   }
 }

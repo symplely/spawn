@@ -378,17 +378,28 @@ if (!\function_exists('spawn')) {
   /**
    *  Returns an array of all `user defined` global variables, without `super globals`.
    *
-   * @param array $vars nly **get_defined_vars()** should be passed in.
+   * @param array $vars only **get_defined_vars()** should be passed in.
    * @return array
    */
   function get_globals(array $vars): array
   {
-    global $____spawn_globals____;
-
     $global = @\array_diff($vars, array(array()));
     unset($global['argc']);
-    $____spawn_globals____ = $global;
     return $global;
+  }
+
+  /**
+   *  Set `user defined` global `key => value` pair to be transferred to a **subprocess**.
+   *
+   * @param array $spawn_globals from `get_globals(get_defined_vars());`.
+   * @return void
+   *
+   * @codeCoverageIgnore
+   */
+  function set_globals(array $spawn_globals): void
+  {
+    foreach ($spawn_globals as $key => $value)
+      $GLOBALS[$key] = $value;
   }
 
   /**

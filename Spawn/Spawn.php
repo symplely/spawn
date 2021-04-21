@@ -74,7 +74,10 @@ class Spawn
         }
 
         self::$autoload = $autoload;
-        self::$containerScript = __DIR__ . \DS . 'Container.php';
+        if (\IS_UV && self::$useUv)
+            self::$containerScript = __DIR__ . \DS . 'UVContainer.php';
+        else
+            self::$containerScript = __DIR__ . \DS . 'Container.php';
 
         self::$isInitialized = true;
 
@@ -178,31 +181,6 @@ class Spawn
     public static function isBypass(): bool
     {
         return self::$bypass;
-    }
-
-    /**
-     * Daemon a process to run in the background.
-     *
-     * @param string $task daemon
-     * @param mixed|null $channeled Set the input content as `stream`, `resource`, `scalar`, `Traversable`, or `null` for no input.
-     * - The content will be passed to the underlying process standard input.
-     * - This feature is only available with Symfony `process` class.
-     * - `$input` is not available when using `libuv` features.
-     *
-     * @return FutureInterface
-     *
-     * @codeCoverageIgnore
-     */
-    public static function daemon($task, $channeled = null): FutureInterface
-    {
-        if (\is_string($task)) {
-            $shadow = (('\\' === \IS_WINDOWS) ? 'start /b ' : 'nohup ') . $task;
-        } else {
-            $shadow[] = ('\\' === \IS_WINDOWS) ? 'start /b' : 'nohup';
-            $shadow[] = $task;
-        }
-
-        return Spawn::create($shadow, 0, $channeled);
     }
 
     /**

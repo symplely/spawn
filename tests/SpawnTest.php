@@ -308,16 +308,6 @@ class SpawnTest extends TestCase
     $this->assertFalse($future1 === $future2);
   }
 
-  public function testLargeOutputs()
-  {
-    $future = Spawn::create(function () {
-      return \str_repeat('abcd', 1024 * 512);
-    }, 1);
-
-    $future->run();
-    $this->assertEquals(\str_repeat('abcd', 1024 * 512), $future->getOutput());
-  }
-
   public function testCanUseClassParentProcess()
   {
     /** @var MyClass $result */
@@ -336,5 +326,11 @@ class SpawnTest extends TestCase
     $future->close();
     $this->assertInstanceOf(MyClass::class, $result);
     $this->assertTrue($result->property);
+  }
+
+  public function testGetGlobals()
+  {
+    $global = \get_globals(get_defined_vars());
+    $this->assertIsArray($global);
   }
 }

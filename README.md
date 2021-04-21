@@ -176,13 +176,9 @@ $future = Spawn::create(function () {
     });
 ```
 
-There's also `->done`, part of `->then()` extended callback method.
-
 ```php
-->done(function ($result) {
-    // On success, `$result` is returned by the process or callable you passed to the queue.
-});
-->then(function ($resultOutput) {
+->then(function ($result) {
+    // On success, `$result` is returned by the process or callable you passed.
         //
     }, function ($catchException) {
         //

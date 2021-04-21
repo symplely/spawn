@@ -81,15 +81,6 @@ interface FutureInterface
   ): FutureInterface;
 
   /**
-   * Add handlers to be called when the process is successful.
-   *
-   * @param callable $callback
-   *
-   * @return FutureInterface
-   */
-  public function done(callable $callback): FutureInterface;
-
-  /**
    * Add handlers to be called when the process is terminated with a signal.
    * - This feature is only available when using `libuv`.
    *

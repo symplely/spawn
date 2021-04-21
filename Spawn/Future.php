@@ -38,6 +38,7 @@ class Future implements FutureInterface
   protected $errorOutput;
   protected $rawLastResult;
   protected $lastResult;
+  protected $finalResult;
   protected $processOutput;
   protected $processError;
 
@@ -59,7 +60,7 @@ class Future implements FutureInterface
    */
   protected $signal = null;
 
-  protected static $Future = [];
+  protected static $future = [];
   protected static $uv = null;
 
   private function __construct(
@@ -85,7 +86,7 @@ class Future implements FutureInterface
     $this->task = $task;
     $this->messages = new \SplQueue();
     self::$uv = $loop;
-    self::$Future[$id] = $this;
+    self::$future[$id] = $this;
   }
 
   public static function create(Process $process, int $id, int $timeout = 0, bool $isYield = false): FutureInterface
@@ -124,34 +125,34 @@ class Future implements FutureInterface
     $stdio[] = \uv_stdio_new($out, \UV::CREATE_PIPE | \UV::WRITABLE_PIPE);
     $stdio[] = \uv_stdio_new($err, \UV::CREATE_PIPE | \UV::READABLE_PIPE | \UV::WRITABLE_PIPE);
 
-    $launch = &self::$Future;
+    $launch = &self::$future;
     $callback = function ($process, $stat, $signal) use ($in, $out, $err, $getId, &$launch) {
       $id = (int) $getId;
-      $Future = isset($launch[$id]) ? $launch[$id] : null;
-      if ($Future instanceof Future) {
-        if ($Future->timer instanceof \UVTimer && \uv_is_active($Future->timer)) {
-          \uv_timer_stop($Future->timer);
-          \uv_unref($Future->timer);
+      $future = isset($launch[$id]) ? $launch[$id] : null;
+      if ($future instanceof Future) {
+        if ($future->timer instanceof \UVTimer && \uv_is_active($future->timer)) {
+          \uv_timer_stop($future->timer);
+          \uv_unref($future->timer);
         }
 
         if ($signal) {
-          if ($signal === \SIGINT && $Future->status === 'timeout') {
+          if ($signal === \SIGINT && $future->status === 'timeout') {
             if (!Spawn::isBypass())
-              $Future->triggerTimeout($Future->isYield);
+              $future->triggerTimeout($future->isYield);
           } else {
-            $Future->status = 'signaled';
-            $Future->signal = $signal;
+            $future->status = 'signaled';
+            $future->signal = $signal;
             if (!Spawn::isBypass())
-              $Future->triggerSignal($signal);
+              $future->triggerSignal($signal);
           }
         } elseif ($stat === 0) {
-          $Future->status = true;
+          $future->status = true;
           if (!Spawn::isBypass())
-            $Future->triggerSuccess($Future->isYield);
+            $future->triggerSuccess($future->isYield);
         } elseif ($stat === 1) {
-          $Future->status = false;
+          $future->status = false;
           if (!Spawn::isBypass())
-            $Future->triggerError($Future->isYield);
+            $future->triggerError($future->isYield);
         }
 
         foreach ([$in, $out, $err, $process] as $handle) {
@@ -161,7 +162,7 @@ class Future implements FutureInterface
         }
 
         if (!Spawn::isBypass())
-          $Future->flush();
+          $future->flush();
       }
     };
 
@@ -177,29 +178,11 @@ class Future implements FutureInterface
         0
       );
     } elseif (\is_array($task)) {
-      $process = \uv_spawn(
-        $uvLoop,
-        \array_shift($task),
-        $task,
-        $stdio,
-        \uv_cwd(),
-        [],
-        $callback,
-        0
-      );
+      $process = \uv_spawn($uvLoop, \array_shift($task), $task, $stdio, \uv_cwd(), [], $callback, 0);
     } else {
       $cmd = (\IS_WINDOWS) ? 'cmd /c ' . $task : $task;
       $taskArray = \explode(' ', $cmd);
-      $process = \uv_spawn(
-        $uvLoop,
-        \array_shift($taskArray),
-        $taskArray,
-        $stdio,
-        \uv_cwd(),
-        [],
-        $callback,
-        0
-      );
+      $process = \uv_spawn($uvLoop, \array_shift($taskArray), $taskArray, $stdio, \uv_cwd(), [], $callback, 0);
     }
 
     $timer = \uv_timer_init($uvLoop);
@@ -238,11 +221,6 @@ class Future implements FutureInterface
         @\uv_read_start($this->out, function ($out, $nRead, $buffer) {
           if ($nRead > 0) {
             $data = $this->clean($buffer);
-            if (\is_string($data) && !\is_base64($data)) {
-              $this->processOutput .= $data;
-              $this->rawLastResult = $data;
-            }
-
             $this->displayProgress('out', $data);
           }
         });
@@ -260,10 +238,7 @@ class Future implements FutureInterface
     } else {
       $this->process->start(function ($type, $buffer) {
         $data = $this->clean($buffer);
-        if (!\is_base64($data) && $type === 'out') {
-          $this->processOutput .= $data;
-          $this->rawLastResult = $data;
-        } elseif ($type === 'err')
+        if ($type === 'err')
           $this->processError .= $data;
 
         $this->displayProgress($type, $data);
@@ -282,14 +257,14 @@ class Future implements FutureInterface
         $this->stop();
 
       $process = clone $this->process;
-      $Future = $this->create($process, $this->id, $this->timeout);
+      $future = $this->create($process, $this->id, $this->timeout);
     } else {
-      $Future = self::add($this->task, $this->id, \PHP_BINARY, '', '', false, (int) $this->timeout, $this->isYield);
+      $future = self::add($this->task, $this->id, \PHP_BINARY, '', '', false, (int) $this->timeout, $this->isYield);
       if ($this->isRunning())
         $this->stop();
     }
 
-    return $Future->start();
+    return $future->start();
   }
 
   public function run(bool $useYield = false)
@@ -312,8 +287,8 @@ class Future implements FutureInterface
    */
   protected function flush()
   {
-    self::$Future[$this->id] = null;
-    unset(self::$Future[$this->id]);
+    self::$future[$this->id] = null;
+    unset(self::$future[$this->id]);
 
     $this->timeout = null;
     $this->id = null;
@@ -344,6 +319,7 @@ class Future implements FutureInterface
     $this->errorOutput = null;
     $this->rawLastResult = null;
     $this->lastResult = null;
+    $this->finalResult = null;
     $this->processOutput = null;
     $this->processError = null;
     $this->process = null;
@@ -539,7 +515,22 @@ class Future implements FutureInterface
 
   public function getResult()
   {
-    return $this->decoded($this->lastResult);
+    if (!$this->finalResult) {
+      $this->finalResult = $this->decoded($this->lastResult);
+      if (\is_base64($this->finalResult) !== false) {
+        $this->lastResult = $this->clean($this->finalResult);
+        $this->finalResult = $this->decoded($this->lastResult);
+      }
+
+      if (\is_array($this->finalResult) && isset($this->finalResult[1])) {
+        $this->finalResult = $this->finalResult[1] == 'final' ? $this->finalResult[0] : $this->finalResult;
+        $this->lastResult = $this->clean($this->finalResult);
+        $this->finalResult = $this->decoded($this->lastResult);
+      }
+    }
+
+    $this->lastResult = null;
+    return $this->finalResult;
   }
 
   public function getProcess()
@@ -579,11 +570,11 @@ class Future implements FutureInterface
   }
 
   public function then(
-    callable $doneCallback,
+    callable $thenCallback,
     callable $failCallback = null,
     callable $progressCallback = null
   ): FutureInterface {
-    $this->done($doneCallback);
+    $this->successCallbacks[] = $thenCallback;
 
     if ($failCallback !== null) {
       $this->catch($failCallback);
@@ -607,13 +598,6 @@ class Future implements FutureInterface
   public function progress(callable $progressCallback): FutureInterface
   {
     $this->progressCallbacks[] = $progressCallback;
-
-    return $this;
-  }
-
-  public function done(callable $callback): FutureInterface
-  {
-    $this->successCallbacks[] = $callback;
 
     return $this;
   }
@@ -644,13 +628,18 @@ class Future implements FutureInterface
    */
   protected function displayProgress($type, $buffer)
   {
-    $output = $this->decoded($buffer);
+    $output = $showing = $this->decoded($buffer);
     if ($this->showOutput && \is_string($output) && !\is_base64($output)) {
       // @codeCoverageIgnoreStart
       if (!\IS_CLI)
-        $output = \htmlspecialchars($output, \ENT_COMPAT, 'UTF-8');
+        $showing = \htmlspecialchars($output, \ENT_COMPAT, 'UTF-8');
       // @codeCoverageIgnoreEnd
-      \printf('%s', $output);
+      \printf('%s', $showing);
+    }
+
+    if (\is_string($output) && !\is_base64($output) && $type === 'out') {
+      $this->processOutput .= $output;
+      $this->rawLastResult = $output;
     }
 
     $this->triggerProgress($type, $output);
@@ -717,14 +706,9 @@ class Future implements FutureInterface
 
     $result = null;
     if ($this->getResult() && !$this->getErrorOutput()) {
-      $result = $this->lastResult;
+      $result = $this->finalResult;
     } elseif ($this->getErrorOutput()) {
       return $this->triggerError($isYield);
-    }
-
-    if (\is_base64($result) !== false) {
-      $this->lastResult = $this->clean($result);
-      $result = $this->decoded($this->lastResult);
     }
 
     if ($isYield)
