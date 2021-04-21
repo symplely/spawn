@@ -8,7 +8,10 @@ use Async\Spawn\Process;
 use Async\Spawn\ChanneledInterface;
 
 /**
- * A channel is used to transfer messages between a `Process` as a IPC pipe.
+ * Provides a way to continuously communicate until the channel is closed.
+ *
+ * Send and receive operations are (async) blocking by default, they can be used
+ * to synchronize tasks.
  */
 class Channeled implements ChanneledInterface
 {
@@ -23,7 +26,7 @@ class Channeled implements ChanneledInterface
   /**
    * IPC handle
    *
-   * @var Object|Launcher
+   * @var Object|Future
    */
   protected $channel = null;
   protected $ipcInput = \STDIN;
@@ -58,29 +61,13 @@ class Channeled implements ChanneledInterface
   /**
    * Setup the `parent` IPC handle.
    *
-   * @param Object|Launcher $handle Use by `send()`, `recv()`, and `kill()`
+   * @param Object|Future $handle Use by `send()`, `recv()`, and `kill()`
    *
    * @return ChanneledInterface
    */
   public function setHandle(Object $handle): ChanneledInterface
   {
     $this->channel = $handle;
-
-    return $this;
-  }
-
-  /**
-   * @codeCoverageIgnore
-   */
-  public function setResource($input = \STDIN, $output = \STDOUT, $error = \STDERR): ChanneledInterface
-  {
-    $this->ipcInput = $input;
-    $this->ipcOutput = $output;
-    $this->ipcError = $error;
-    \stream_set_read_buffer($this->ipcInput, 0);
-    \stream_set_write_buffer($this->ipcOutput, 0);
-    \stream_set_read_buffer($this->ipcError, 0);
-    \stream_set_write_buffer($this->ipcError, 0);
 
     return $this;
   }
@@ -129,18 +116,13 @@ class Channeled implements ChanneledInterface
     }
   }
 
-  public function recv(int $length = 0): string
+  public function recv()
   {
     if (\is_object($this->channel) && \method_exists($this->channel, 'getProcess')) {
       return $this->channel->getLast();
     }
 
-    // @codeCoverageIgnoreStart
-    if ($length === 0)
-      return \trim(\fgets($this->ipcInput), \PHP_EOL);
-
-    return \fread($this->ipcInput, $length);
-    // @codeCoverageIgnoreEnd
+    return \trim(\fgets($this->ipcInput), \PHP_EOL);
   }
 
   /**
