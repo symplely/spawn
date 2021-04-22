@@ -2,6 +2,7 @@
 
 namespace Async\Tests;
 
+use Async\Spawn\Channeled;
 use Async\Spawn\ChanneledInterface;
 use PHPUnit\Framework\TestCase;
 
@@ -41,5 +42,15 @@ class ChanneledTest extends TestCase
     $this->assertSame('pingpangpong', $future->getOutput());
     $this->assertSame('pong', $future->getLast());
     $this->assertSame(9, \spawn_result($future));
+  }
+
+  public function testChannelMake()
+  {
+    $channel = Channeled::make("io");
+
+    parallel(function ($channel) {
+      var_dump($channel);
+    }, $channel)->run();
+    $this->expectOutputRegex('/[string(2) "io"]/');
   }
 }

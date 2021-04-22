@@ -313,6 +313,38 @@ if (!\function_exists('spawn')) {
     return Spawn::create($executable, $timeout, $futureChanneled, $isYield);
   }
 
+  function parallel($task, ...$argv): FutureInterface
+  {
+    global $___parallel___;
+    $channel = null;
+    foreach ($argv as $isChannel) {
+      if ($isChannel instanceof ChanneledInterface) {
+        $channel = $isChannel;
+        break;
+      }
+    }
+
+    $executable = function () use ($task, $argv, $___parallel___) {
+      if (\is_array($___parallel___))
+        \set_globals($___parallel___);
+
+      $result = $task(...$argv);
+      $parallel = \get_globals(\get_defined_vars());
+      return \flush_value([\deserialize($result), '___parallel___', $parallel], 5);
+    };
+
+    $future = Spawn::create($executable, 0, $channel, false)->displayOn();
+    if ($channel instanceof Channeled)
+      $channel->setHandle($future);
+
+    return $future;
+  }
+
+  function parallel_start(FutureInterface $future): FutureInterface
+  {
+    return $future->start();
+  }
+
   /**
    * Start the process and wait to terminate, and return any results.
    */

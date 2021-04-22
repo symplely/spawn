@@ -44,6 +44,7 @@
         "pcntl",
         "phpunit",
         "symfony",
-        "usleep"
+        "usleep",
+        "SKIPIF"
     ]
 }

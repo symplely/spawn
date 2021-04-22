@@ -12,7 +12,7 @@ namespace Async\Spawn;
  */
 interface ChanneledInterface extends \IteratorAggregate
 {
-  public static function make(string $name, ?int $capacity = null): ChanneledInterface;
+  public static function make(string $name, int $capacity = -1): ChanneledInterface;
   public static function open(string $name): ChanneledInterface;
 
   /**

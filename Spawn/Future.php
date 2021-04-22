@@ -515,6 +515,8 @@ class Future implements FutureInterface
 
   public function getResult()
   {
+    global $___parallel___;
+
     if (!$this->finalResult) {
       $this->finalResult = $this->decoded($this->lastResult);
       if (\is_base64($this->finalResult) !== false) {
@@ -523,9 +525,19 @@ class Future implements FutureInterface
       }
 
       if (\is_array($this->finalResult) && isset($this->finalResult[1])) {
-        $this->finalResult = $this->finalResult[1] == 'final' ? $this->finalResult[0] : $this->finalResult;
+        $this->finalResult = $this->finalResult[1] === 'final' ? $this->finalResult[0] : $this->finalResult;
         $this->lastResult = $this->clean($this->finalResult);
         $this->finalResult = $this->decoded($this->lastResult);
+        if (\is_array($this->finalResult) && isset($this->finalResult[1])) {
+          if ($this->finalResult[1] === '___parallel___') {
+            if (\is_array($this->finalResult[2]))
+              $___parallel___ = $this->finalResult[2];
+
+            $this->finalResult = $this->finalResult[0];
+            $this->lastResult = $this->clean($this->finalResult);
+            $this->finalResult = $this->decoded($this->lastResult);
+          }
+        }
       }
     }
 

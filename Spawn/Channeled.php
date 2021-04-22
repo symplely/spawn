@@ -6,6 +6,7 @@ namespace Async\Spawn;
 
 use Async\Spawn\Process;
 use Async\Spawn\ChanneledInterface;
+use Error;
 
 /**
  * Provides a way to continuously communicate until the channel is closed.
@@ -15,6 +16,10 @@ use Async\Spawn\ChanneledInterface;
  */
 class Channeled implements ChanneledInterface
 {
+  protected static $channels = [];
+  protected static $anonymous = 0;
+  protected $name = '';
+
   /**
    * @var callable|null
    */
@@ -32,34 +37,53 @@ class Channeled implements ChanneledInterface
   protected $ipcInput = \STDIN;
   protected $ipcOutput = \STDOUT;
   protected $ipcError = \STDERR;
-  protected static $instance = null;
 
-  public function __construct()
+  public function __destruct()
+  {
+    self::$channels[$this->name] = null;
+    unset(self::$channels[$this->name]);
+    $this->name = null;
+  }
+
+  public function __construct(int $capacity = -1, string $name = __FILE__, bool $anonymous = true)
   {
     \stream_set_read_buffer($this->ipcInput, 0);
     \stream_set_write_buffer($this->ipcOutput, 0);
     \stream_set_read_buffer($this->ipcError, 0);
     \stream_set_write_buffer($this->ipcError, 0);
+    if ($anonymous) {
+      self::$anonymous++;
+      $this->name = \sprintf("%s#%u@%d[%d]", $name, __LINE__, \strlen($name), self::$anonymous);
+      self::$channels[self::$anonymous] = $this;
+    } else {
+      $this->name = $name;
+      self::$channels[$name] = $this;
+    }
   }
 
-  /**
-   * @codeCoverageIgnore
-   */
-  public static function make(string $name, ?int $capacity = null): ChanneledInterface
+  public function __toString()
   {
-    return self::$instance;
+    return $this->name;
   }
 
-  /**
-   * @codeCoverageIgnore
-   */
+  public static function make(string $name, int $capacity = -1): ChanneledInterface
+  {
+    if (isset(self::$channels[$name]) && self::$channels[$name] instanceof ChanneledInterface)
+      throw new Error(\sprintf('channel named %s already exists', $name));
+
+    return new self($capacity, $name, false);
+  }
+
   public static function open(string $name): ChanneledInterface
   {
-    return self::$instance;
+    if (isset(self::$channels[$name]))
+      return self::$channels[$name];
+
+    throw new Error(\sprintf('channel named %s not found', $name));
   }
 
   /**
-   * Setup the `parent` IPC handle.
+   * Set `Channel` parent `Future` handle.
    *
    * @param Object|Future $handle Use by `send()`, `recv()`, and `kill()`
    *
@@ -212,7 +236,7 @@ class Channeled implements ChanneledInterface
   }
 
   /**
-   * Validates and normalizes a Process input.
+   * Validates and normalizes input.
    *
    * @param string $caller The name of method call that validates the input
    * @param mixed  $input  The input to validate
