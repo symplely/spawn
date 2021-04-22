@@ -45,6 +45,7 @@ class Future implements FutureInterface
   protected $startTime;
   protected $showOutput = false;
   protected $isYield = false;
+  protected $hasStarted = false;
 
   protected $status = null;
 
@@ -247,6 +248,7 @@ class Future implements FutureInterface
       $this->pid = $this->process->getPid();
     }
 
+    $this->hasStarted = true;
     return $this;
   }
 
@@ -422,6 +424,11 @@ class Future implements FutureInterface
     return $this->process->isTerminated();
   }
 
+  public function isStarted(): bool
+  {
+    return $this->hasStarted;
+  }
+
   public function displayOn(): FutureInterface
   {
     $this->showOutput = true;
@@ -532,7 +539,6 @@ class Future implements FutureInterface
           if ($this->finalResult[1] === '___parallel___') {
             if (\is_array($this->finalResult[2]))
               $___parallel___ = $this->finalResult[2];
-
             $this->finalResult = $this->finalResult[0];
             $this->lastResult = $this->clean($this->finalResult);
             $this->finalResult = $this->decoded($this->lastResult);
@@ -663,8 +669,6 @@ class Future implements FutureInterface
     if ($this->isMessage($buffer)) {
       if ($this->process instanceof \UVProcess)
         $this->messages->enqueue($buffer['message']);
-      if ($this->process instanceof Process)
-        $liveOutput = $this->rawLastResult = $buffer['message'];
     } else {
       $liveOutput = $this->lastResult = $buffer;
     }

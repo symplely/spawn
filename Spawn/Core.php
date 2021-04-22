@@ -328,9 +328,9 @@ if (!\function_exists('spawn')) {
       if (\is_array($___parallel___))
         \set_globals($___parallel___);
 
-      $result = $task(...$argv);
-      $parallel = \get_globals(\get_defined_vars());
-      return \flush_value([\deserialize($result), '___parallel___', $parallel], 5);
+      global $___channeled___;
+      $___channeled___ = 'parallel';
+      return \flush_value($task(...$argv), 5);
     };
 
     $future = Spawn::create($executable, 0, $channel, false)->displayOn();
@@ -340,9 +340,9 @@ if (!\function_exists('spawn')) {
     return $future;
   }
 
-  function parallel_start(FutureInterface $future): FutureInterface
+  function channel_destroy()
   {
-    return $future->start();
+    Channeled::destroy();
   }
 
   /**

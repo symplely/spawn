@@ -42,7 +42,6 @@ class Channeled implements ChanneledInterface
   {
     self::$channels[$this->name] = null;
     unset(self::$channels[$this->name]);
-    $this->name = null;
   }
 
   public function __construct(int $capacity = -1, string $name = __FILE__, bool $anonymous = true)
@@ -66,6 +65,15 @@ class Channeled implements ChanneledInterface
     return $this->name;
   }
 
+  public static function destroy()
+  {
+    foreach (self::$channels as $key => $instance) {
+      if (isset(self::$channels[$key]) && self::$channels[$key] instanceof ChanneledInterface) {
+        unset($instance);
+      }
+    }
+  }
+
   public static function make(string $name, int $capacity = -1): ChanneledInterface
   {
     if (isset(self::$channels[$name]) && self::$channels[$name] instanceof ChanneledInterface)
@@ -76,10 +84,15 @@ class Channeled implements ChanneledInterface
 
   public static function open(string $name): ChanneledInterface
   {
-    if (isset(self::$channels[$name]))
+    global $___channeled___;
+
+    if (isset(self::$channels[$name]) && self::$channels[$name] instanceof ChanneledInterface)
       return self::$channels[$name];
 
-    throw new Error(\sprintf('channel named %s not found', $name));
+    if ($___channeled___ === 'parallel')
+      return new self(-1, $name, false);
+
+    throw new Error(\sprintf('channel named %s %s not found', $name));
   }
 
   /**
@@ -96,9 +109,9 @@ class Channeled implements ChanneledInterface
     return $this;
   }
 
-  public function setState(): ChanneledInterface
+  public function setState($future = 'process'): ChanneledInterface
   {
-    $this->state = 'process';
+    $this->state = $future;
 
     return $this;
   }
