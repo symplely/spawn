@@ -321,6 +321,9 @@ if (!\function_exists('spawn')) {
       if ($isChannel instanceof ChanneledInterface) {
         $channel = $isChannel;
         break;
+      } elseif (\is_string($isChannel) && Channeled::isChannel($isChannel)) {
+        $channel = Channeled::open($isChannel);
+        break;
       }
     }
 

@@ -235,12 +235,12 @@ interface FutureInterface
   public function getProcess();
 
   /**
-   * The UVPipe handle for `libuv` input.
+   * The UVPipe handles for `stdin`, `stdout`, `stderr` of `libuv`
    * - This feature is only available when using `libuv`.
    *
-   * @return \UVPipe
+   * @return array<\UVPipe, \UVPipe, \UVPipe>
    */
-  public function getPipeInput();
+  public function getStdio(): array;
 
   /**
    * Return the termination signal.

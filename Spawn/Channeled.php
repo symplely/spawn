@@ -68,7 +68,7 @@ class Channeled implements ChanneledInterface
   public static function destroy()
   {
     foreach (self::$channels as $key => $instance) {
-      if (isset(self::$channels[$key]) && self::$channels[$key] instanceof ChanneledInterface) {
+      if (self::isChannel($key)) {
         unset($instance);
       }
     }
@@ -136,6 +136,75 @@ class Channeled implements ChanneledInterface
     return !$this->open;
   }
 
+
+  public static function isChannel($name): bool
+  {
+    return isset(self::$channels[$name]) && self::$channels[$name] instanceof ChanneledInterface;
+  }
+
+  /**
+   * @codeCoverageIgnore
+   */
+  public function __send($value): void
+  {
+    if ($this->isClosed())
+      throw new \RuntimeException(\sprintf('%s is closed', static::class));
+
+    if (null !== $value && (\is_object($this->channel)
+      && \method_exists($this->channel, 'getProcess')
+      && $this->channel->getProcess() instanceof \UVProcess)) {
+      $futureInput = $this->channel->getStdio()[0];
+      $future = $this->channel;
+
+      $future->loopAdd();
+      \uv_write(
+        $futureInput,
+        \serializer([$value, 'message']) . \EOL,
+        function () use ($future) {
+          $future->loopRemove();
+        }
+      );
+
+      $future->loopTick();
+    } elseif (null !== $value && $this->state === 'process' || \is_resource($value)) {
+      $this->input[] = self::validateInput(__METHOD__, $value);
+    } elseif (null !== $value) {
+      \fwrite($this->ipcOutput, \serializer([$value, 'message']));
+    }
+  }
+
+  /**
+   * @codeCoverageIgnore
+   */
+  public function __recv()
+  {
+    if (
+      \is_object($this->channel)
+      && \method_exists($this->channel, 'getProcess')
+      && $this->channel->getProcess() instanceof \UVProcess
+    ) {
+      $futureOutput = $this->channel->getStdio()[1];
+      $future = $this->channel;
+      $future->loopAdd();
+      if (!$future->isStarted()) {
+        $future->pid = $future->getPid();
+        $future->hasStarted = true;
+        @\uv_read_start($futureOutput, function ($out, $nRead, $buffer) use ($future) {
+          if ($nRead > 0) {
+            $future->loopRemove();
+            $data = $future->clean($buffer);
+            $future->displayProgress('out', $data);
+          }
+        });
+      }
+
+      $future->loopTick();
+      return $future->getMessage();
+    }
+
+    return $this->isMessage(\trim(\fgets($this->ipcInput), \EOL));
+  }
+
   public function send($value): void
   {
     if ($this->isClosed())
@@ -144,7 +213,7 @@ class Channeled implements ChanneledInterface
     if (null !== $value && (\is_object($this->channel)
       && \method_exists($this->channel, 'getProcess')
       && $this->channel->getProcess() instanceof \UVProcess)) {
-      \uv_write($this->channel->getPipeInput(), \serializer([$value, 'message']) . \EOL, function () {
+      \uv_write($this->channel->getStdio()[0], \serializer([$value, 'message']) . \EOL, function () {
       });
     } elseif (null !== $value && $this->state === 'process' || \is_resource($value)) {
       $this->input[] = self::validateInput(__METHOD__, $value);

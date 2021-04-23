@@ -33,6 +33,7 @@ class Future implements FutureInterface
   protected $out;
   protected $err;
   protected $timer;
+  protected $uvCounter = 0;
 
   protected $output;
   protected $errorOutput;
@@ -88,6 +89,54 @@ class Future implements FutureInterface
     $this->messages = new \SplQueue();
     self::$uv = $loop;
     self::$future[$id] = $this;
+  }
+
+  /**
+   * Resets data related to the latest run of the process.
+   */
+  protected function flush()
+  {
+    self::$future[$this->id] = null;
+    unset(self::$future[$this->id]);
+
+    $this->timeout = null;
+    $this->id = null;
+    $this->pid = null;
+    $this->in = null;
+    $this->out = null;
+    $this->err = null;
+    $this->timer = null;
+
+    $this->startTime = null;
+    $this->showOutput = false;
+    $this->isYield = false;
+
+    $this->successCallbacks = [];
+    $this->errorCallbacks = [];
+    $this->timeoutCallbacks = [];
+    $this->progressCallbacks = [];
+    $this->signalCallbacks = [];
+  }
+
+  public function close()
+  {
+    if ($this->process instanceof Process || Spawn::isBypass()) {
+      $this->flush();
+    }
+
+    $this->output = null;
+    $this->errorOutput = null;
+    $this->rawLastResult = null;
+    $this->lastResult = null;
+    $this->finalResult = null;
+    $this->processOutput = null;
+    $this->processError = null;
+    $this->process = null;
+    $this->status = null;
+    $this->task = null;
+    $this->signal = null;
+    unset($this->messages);
+    $this->messages = null;
   }
 
   public static function create(Process $process, int $id, int $timeout = 0, bool $isYield = false): FutureInterface
@@ -284,59 +333,26 @@ class Future implements FutureInterface
     return yield from $this->run(true);
   }
 
-  /**
-   * Resets data related to the latest run of the process.
-   */
-  protected function flush()
-  {
-    self::$future[$this->id] = null;
-    unset(self::$future[$this->id]);
-
-    $this->timeout = null;
-    $this->id = null;
-    $this->pid = null;
-    $this->in = null;
-    $this->out = null;
-    $this->err = null;
-    $this->timer = null;
-
-    $this->startTime = null;
-    $this->showOutput = false;
-    $this->isYield = false;
-
-    $this->successCallbacks = [];
-    $this->errorCallbacks = [];
-    $this->timeoutCallbacks = [];
-    $this->progressCallbacks = [];
-    $this->signalCallbacks = [];
-  }
-
-  public function close()
-  {
-    if ($this->process instanceof Process || Spawn::isBypass()) {
-      $this->flush();
-    }
-
-    $this->output = null;
-    $this->errorOutput = null;
-    $this->rawLastResult = null;
-    $this->lastResult = null;
-    $this->finalResult = null;
-    $this->processOutput = null;
-    $this->processError = null;
-    $this->process = null;
-    $this->status = null;
-    $this->task = null;
-    $this->signal = null;
-    unset($this->messages);
-    $this->messages = null;
-  }
-
   protected function yieldRun()
   {
     \uv_run(self::$uv, \UV::RUN_DEFAULT);
 
     return yield $this->getResult();
+  }
+
+  public function loopAdd()
+  {
+    $this->uvCounter++;
+  }
+
+  public function loopRemove()
+  {
+    $this->uvCounter--;
+  }
+
+  public function loopTick()
+  {
+    \uv_run(self::$uv, ($this->uvCounter ? \UV::RUN_ONCE : \UV::RUN_NOWAIT));
   }
 
   public function wait($waitTimer = 1000, bool $useYield = false)
@@ -560,9 +576,9 @@ class Future implements FutureInterface
     return $this->process;
   }
 
-  public function getPipeInput(): ?\UVPipe
+  public function getStdio(): array
   {
-    return $this->in;
+    return [$this->in, $this->out, $this->err];
   }
 
   public function getId(): int
