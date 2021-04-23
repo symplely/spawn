@@ -545,9 +545,9 @@ if (!\function_exists('spawn')) {
    *
    * @param \UVLoop|null $loop - Set UVLoop handle, this feature is only available when using `libuv`.
    * @param bool $isYield - Set/expects the launched sub processes to be called and using the `yield` keyword.
-   * @param bool $bypass - Bypass calling `uv_spawn` callbacks handlers.
+   * @param bool $bypass -Should `uv_spawn` package just set `future` process status, don't call callback handlers.
    * - The callbacks handlers are for this library standalone use.
-   * - The `uv_spawn` callback will only set process status.
+   * - The `uv_spawn` preset callback will only set process status.
    * - This feature is for `Coroutine` package or any third party package.
    * @param bool $useUv - Turn **on/off** `uv_spawn` for child subprocess operations, will use **libuv** features,
    * if not **true** will use `proc_open` of **symfony/process**.

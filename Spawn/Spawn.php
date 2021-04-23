@@ -170,9 +170,9 @@ class Spawn
     }
 
     /**
-     * Is bypass calling `uv_spawn` callbacks handlers set.
+     * Should `uv_spawn` package just set `future` process status, don't call callback handlers.
      * - The callbacks handlers are for standalone use.
-     * - The `uv_spawn` callback will only set process status.
+     * - The `uv_spawn` preset callback will only set process status.
      * - This feature is for `Coroutine` package or any third party package.
      *
      * @return bool
