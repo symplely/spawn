@@ -17,7 +17,7 @@ class ContainerTest extends TestCase
 
     public function testIt_can_run()
     {
-        $bootstrap = __DIR__ . \DS . '..' . \DS . 'Spawn' . \DS . 'Container.php';
+        $bootstrap = __DIR__ . \DS . '..' . \DS . 'Spawn' . \DS . 'UVContainer.php';
 
         $autoload = __DIR__ . \DS . '..' . \DS . 'vendor' . \DS . 'autoload.php';
 

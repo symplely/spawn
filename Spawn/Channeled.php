@@ -144,22 +144,38 @@ class Channeled implements ChanneledInterface
     if (null !== $message && (\is_object($this->channel)
       && \method_exists($this->channel, 'getProcess')
       && $this->channel->getProcess() instanceof \UVProcess)) {
-      \uv_write($this->channel->getPipeInput(), self::validateInput(__METHOD__, $message), function () {
+      \uv_write($this->channel->getPipeInput(), \serializer([$message, 'message']) . \EOL, function () {
       });
     } elseif (null !== $message && $this->state === 'process' || \is_resource($message)) {
       $this->input[] = self::validateInput(__METHOD__, $message);
     } elseif (null !== $message) {
-      \fwrite($this->ipcOutput, (string) $message);
+      \fwrite($this->ipcOutput, \serializer([$message, 'message']));
     }
   }
 
+  /**
+   * @codeCoverageIgnore
+   */
   public function recv()
   {
     if (\is_object($this->channel) && \method_exists($this->channel, 'getProcess')) {
       return $this->channel->getLast();
     }
 
-    return \trim(\fgets($this->ipcInput), \PHP_EOL);
+    return $this->isMessage(\trim(\fgets($this->ipcInput), \EOL));
+  }
+
+  /**
+   * @codeCoverageIgnore
+   */
+  protected function isMessage($input)
+  {
+    $message = \deserialize($input);
+    if (\is_array($message) && isset($message[1]) && $message[1] === 'message') {
+      return $message[0];
+    }
+
+    return $message;
   }
 
   /**
@@ -175,6 +191,7 @@ class Channeled implements ChanneledInterface
       $this->channel->stop();
     }
   }
+
   /**
    * @codeCoverageIgnore
    */
@@ -182,7 +199,7 @@ class Channeled implements ChanneledInterface
   {
     // @codeCoverageIgnoreStart
     if ($length === 0)
-      return \trim(\fgets($this->ipcInput), \PHP_EOL);
+      return \trim(\fgets($this->ipcInput), \EOL);
 
     return \fread($this->ipcInput, $length);
     // @codeCoverageIgnoreEnd

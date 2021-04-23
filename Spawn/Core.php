@@ -420,6 +420,11 @@ if (!\function_exists('spawn')) {
     return $global;
   }
 
+  function parallel_globals(): array
+  {
+    return \get_globals(get_defined_vars());
+  }
+
   /**
    *  Set `user defined` global `key => value` pair to be transferred to a **subprocess**.
    *

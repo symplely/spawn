@@ -429,6 +429,24 @@ class Future implements FutureInterface
     return $this->hasStarted;
   }
 
+  /**
+   * Check if input is a `Channeled` **message** from a `Future`.
+   *
+   * @param mixed $input
+   *
+   * @return bool
+   */
+  protected function isMessage($input): bool
+  {
+    $message = $this->decoded($input);
+    if (\is_array($message) && isset($message[1]) && $message[1] === 'message') {
+      $this->messages->enqueue($message[0]);
+      return true;
+    }
+
+    return false;
+  }
+
   public function displayOn(): FutureInterface
   {
     $this->showOutput = true;
@@ -498,9 +516,6 @@ class Future implements FutureInterface
     return $this->messages;
   }
 
-  /**
-   * @codeCoverageIgnore
-   */
   public function getMessage()
   {
     if (!$this->messages->isEmpty())
@@ -531,19 +546,8 @@ class Future implements FutureInterface
         $this->finalResult = $this->decoded($this->lastResult);
       }
 
-      if (\is_array($this->finalResult) && isset($this->finalResult[1])) {
-        $this->finalResult = $this->finalResult[1] === 'final' ? $this->finalResult[0] : $this->finalResult;
-        $this->lastResult = $this->clean($this->finalResult);
-        $this->finalResult = $this->decoded($this->lastResult);
-        if (\is_array($this->finalResult) && isset($this->finalResult[1])) {
-          if ($this->finalResult[1] === '___parallel___') {
-            if (\is_array($this->finalResult[2]))
-              $___parallel___ = $this->finalResult[2];
-            $this->finalResult = $this->finalResult[0];
-            $this->lastResult = $this->clean($this->finalResult);
-            $this->finalResult = $this->decoded($this->lastResult);
-          }
-        }
+      if (\is_array($this->finalResult) && isset($this->finalResult[1]) && $this->finalResult[1] === 'final') {
+        [$this->finalResult,, $___parallel___] = $this->finalResult;
       }
     }
 
@@ -656,8 +660,7 @@ class Future implements FutureInterface
     }
 
     if (\is_string($output) && !\is_base64($output) && $type === 'out') {
-      $this->processOutput .= $output;
-      $this->rawLastResult = $output;
+      $this->processOutput .= $this->rawLastResult = $output;
     }
 
     $this->triggerProgress($type, $output);
@@ -667,8 +670,8 @@ class Future implements FutureInterface
   {
     $liveOutput = '';
     if ($this->isMessage($buffer)) {
-      if ($this->process instanceof \UVProcess)
-        $this->messages->enqueue($buffer['message']);
+      $liveOutput = $this->getMessage();
+      $this->processOutput .= $this->rawLastResult = $liveOutput;
     } else {
       $liveOutput = $this->lastResult = $buffer;
     }
@@ -679,27 +682,6 @@ class Future implements FutureInterface
           $progressCallback($type, $liveOutput);
       }
     }
-  }
-
-  /**
-   * Check if input is a `Channeled` **message** from a `Future`.
-   *
-   * @param mixed $input
-   *
-   * @return bool
-   *
-   * @codeCoverageIgnore
-   */
-  function isMessage($input): bool
-  {
-    return \is_array($input) && isset($input['message']);
-    $input = \deserialize($input);
-    if (\is_array($input) && isset($input[0]) && ($input[0] === 'message')) {
-      $this->messages->enqueue($input[1]);
-      return true;
-    }
-
-    return false;
   }
 
   public function triggerSignal(int $signal = 0)

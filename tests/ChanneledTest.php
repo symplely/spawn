@@ -22,16 +22,18 @@ class ChanneledTest extends TestCase
 
     $future = \spawn(function (ChanneledInterface $channel) {
       $channel->send('ping');
-      echo $channel->recv();
-      echo $channel->recv();
+      $echo = $channel->recv();
+      echo $echo;
+      $echo = $channel->recv();
+      echo $echo;
       return 9;
     }, 10)
       ->progress(
         function ($type, $data) use ($ipc) {
           if ('ping' === $data) {
-            $ipc->send('pang' . \PHP_EOL);
+            $ipc->send('pang');
           } elseif (!$ipc->isClosed()) {
-            $ipc->send('pong' . \PHP_EOL);
+            $ipc->send('pong');
             $ipc->close();
           }
         }

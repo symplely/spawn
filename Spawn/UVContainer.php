@@ -29,16 +29,13 @@ try {
     throw $error;
   }
 
-  global $____parallel____;
-
   $task = \spawn_decode($serializedClosure);
   $results = $task(\spawn_channel());
-  //$____parallel____ = \get_globals(\get_defined_vars());
 
   \fflush(\STDOUT);
   \usleep(25);
 
-  \fwrite(\STDOUT, \serializer([$results, 'final', $____parallel____]));
+  \fwrite(\STDOUT, \serializer([$results, 'final', \parallel_globals()]));
 
   \usleep(25);
   \fflush(\STDOUT);
