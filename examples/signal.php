@@ -20,10 +20,10 @@ $future = \spawn(
   echo "the process has been terminated with 'SIGKILL - " . $signal . "' signal!" . \PHP_EOL;
 })->progress(function ($type, $data) use ($ipc) {
   if ('ping' === $data) {
-    $ipc->send('pang' . \PHP_EOL);
+    $ipc->send('pang');
     $ipc->kill();
   } elseif (!$ipc->isClosed()) {
-    $ipc->send('pong. ' . \PHP_EOL);
+    $ipc->send('pong. ');
     $ipc->close();
   }
 });

@@ -330,7 +330,7 @@ if (!\function_exists('spawn')) {
 
       global $___channeled___;
       $___channeled___ = 'parallel';
-      return \flush_value($task(...$argv), 5);
+      return $task(...$argv);
     };
 
     $future = Spawn::create($executable, 0, $channel, false)->displayOn();

@@ -18,9 +18,9 @@ $future = \spawn(
   }
 )->progress(function ($type, $data) use ($ipc) {
   if ('ping' === $data) {
-    $ipc->send('pang' . \PHP_EOL);
+    $ipc->send('pang');
   } elseif (!$ipc->isClosed()) {
-    $ipc->send('pong. ' . \PHP_EOL);
+    $ipc->send('pong. ');
     $ipc->close();
   }
 });

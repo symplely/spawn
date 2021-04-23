@@ -136,20 +136,20 @@ class Channeled implements ChanneledInterface
     return !$this->open;
   }
 
-  public function send($message): void
+  public function send($value): void
   {
     if ($this->isClosed())
       throw new \RuntimeException(\sprintf('%s is closed', static::class));
 
-    if (null !== $message && (\is_object($this->channel)
+    if (null !== $value && (\is_object($this->channel)
       && \method_exists($this->channel, 'getProcess')
       && $this->channel->getProcess() instanceof \UVProcess)) {
-      \uv_write($this->channel->getPipeInput(), \serializer([$message, 'message']) . \EOL, function () {
+      \uv_write($this->channel->getPipeInput(), \serializer([$value, 'message']) . \EOL, function () {
       });
-    } elseif (null !== $message && $this->state === 'process' || \is_resource($message)) {
-      $this->input[] = self::validateInput(__METHOD__, $message);
-    } elseif (null !== $message) {
-      \fwrite($this->ipcOutput, \serializer([$message, 'message']));
+    } elseif (null !== $value && $this->state === 'process' || \is_resource($value)) {
+      $this->input[] = self::validateInput(__METHOD__, $value);
+    } elseif (null !== $value) {
+      \fwrite($this->ipcOutput, \serializer([$value, 'message']));
     }
   }
 
