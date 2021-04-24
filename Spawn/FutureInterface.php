@@ -15,7 +15,7 @@ interface FutureInterface
    *
    * @var array
    */
-  const INVALID = ['Tjs=', '___uv_spawn___'];
+  const INVALID = ['Tjs='];
 
   /**
    * Gets PHP's process ID.

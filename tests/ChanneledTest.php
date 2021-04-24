@@ -58,7 +58,6 @@ class ChanneledTest extends TestCase
 
   public function testChannelOpen()
   {
-    \channel_destroy();
     $channel = Channel::make("io");
 
     parallel(function ($channel) {

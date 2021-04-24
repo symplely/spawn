@@ -343,6 +343,13 @@ if (!\function_exists('spawn')) {
     return $future;
   }
 
+  /**
+   * Destroy `All` Channel instances.
+   *
+   * @return void
+   *
+   * @codeCoverageIgnore
+   */
   function channel_destroy()
   {
     Channeled::destroy();

@@ -19,6 +19,7 @@ class Channeled implements ChanneledInterface
   protected static $channels = [];
   protected static $anonymous = 0;
   protected $name = '';
+  protected $index = 0;
 
   /**
    * @var callable|null
@@ -34,14 +35,23 @@ class Channeled implements ChanneledInterface
    * @var Object|Future
    */
   protected $channel = null;
+  protected $process = null;
   protected $ipcInput = \STDIN;
   protected $ipcOutput = \STDOUT;
   protected $ipcError = \STDERR;
 
   public function __destruct()
   {
-    self::$channels[$this->name] = null;
-    unset(self::$channels[$this->name]);
+    if (self::isChannel($this->name)) {
+      unset(self::$channels[$this->name]);
+      $this->name = null;
+    } elseif (self::isChannel($this->index)) {
+      unset(self::$channels[$this->index]);
+      $this->index = null;
+    }
+
+    $this->channel = null;
+    $this->process = null;
   }
 
   public function __construct(int $capacity = -1, string $name = __FILE__, bool $anonymous = true)
@@ -52,8 +62,9 @@ class Channeled implements ChanneledInterface
     \stream_set_write_buffer($this->ipcError, 0);
     if ($anonymous) {
       self::$anonymous++;
-      $this->name = \sprintf("%s#%u@%d[%d]", $name, __LINE__, \strlen($name), self::$anonymous);
-      self::$channels[self::$anonymous] = $this;
+      $this->index = self::$anonymous;
+      $this->name = \sprintf("%s#%u@%d[%d]", $name, __LINE__, \strlen($name), $this->index);
+      self::$channels[$this->index] = $this;
     } else {
       $this->name = $name;
       self::$channels[$name] = $this;
@@ -65,6 +76,13 @@ class Channeled implements ChanneledInterface
     return $this->name;
   }
 
+  /**
+   * Destroy `All` Channel instances.
+   *
+   * @return void
+   *
+   * @codeCoverageIgnore
+   */
   public static function destroy()
   {
     foreach (self::$channels as $key => $instance) {
@@ -76,7 +94,7 @@ class Channeled implements ChanneledInterface
 
   public static function make(string $name, int $capacity = -1): ChanneledInterface
   {
-    if (isset(self::$channels[$name]) && self::$channels[$name] instanceof ChanneledInterface)
+    if (self::isChannel($name))
       throw new Error(\sprintf('channel named %s already exists', $name));
 
     return new self($capacity, $name, false);
@@ -86,7 +104,7 @@ class Channeled implements ChanneledInterface
   {
     global $___channeled___;
 
-    if (isset(self::$channels[$name]) && self::$channels[$name] instanceof ChanneledInterface)
+    if (self::isChannel($name))
       return self::$channels[$name];
 
     if ($___channeled___ === 'parallel')
@@ -102,9 +120,12 @@ class Channeled implements ChanneledInterface
    *
    * @return ChanneledInterface
    */
-  public function setHandle(Object $handle): ChanneledInterface
+  public function setHandle($handle): ChanneledInterface
   {
-    $this->channel = $handle;
+    if (\is_object($handle) && \method_exists($handle, 'getProcess')) {
+      $this->channel = $handle;
+      $this->process = $handle->getProcess();
+    }
 
     return $this;
   }
@@ -136,7 +157,12 @@ class Channeled implements ChanneledInterface
     return !$this->open;
   }
 
-
+  /**
+   * Check for a valid `Channel` instance.
+   *
+   * @param string|int $name
+   * @return boolean
+   */
   public static function isChannel($name): bool
   {
     return isset(self::$channels[$name]) && self::$channels[$name] instanceof ChanneledInterface;
@@ -150,9 +176,7 @@ class Channeled implements ChanneledInterface
     if ($this->isClosed())
       throw new \RuntimeException(\sprintf('%s is closed', static::class));
 
-    if (null !== $value && (\is_object($this->channel)
-      && \method_exists($this->channel, 'getProcess')
-      && $this->channel->getProcess() instanceof \UVProcess)) {
+    if (null !== $value && $this->process instanceof \UVProcess) {
       $futureInput = $this->channel->getStdio()[0];
       $future = $this->channel;
 
@@ -178,17 +202,13 @@ class Channeled implements ChanneledInterface
    */
   public function __recv()
   {
-    if (
-      \is_object($this->channel)
-      && \method_exists($this->channel, 'getProcess')
-      && $this->channel->getProcess() instanceof \UVProcess
-    ) {
+    if ($this->process instanceof \UVProcess) {
       $futureOutput = $this->channel->getStdio()[1];
       $future = $this->channel;
       $future->loopAdd();
+
       if (!$future->isStarted()) {
-        $future->pid = $future->getPid();
-        $future->hasStarted = true;
+        $future->start();
         @\uv_read_start($futureOutput, function ($out, $nRead, $buffer) use ($future) {
           if ($nRead > 0) {
             $future->loopRemove();
@@ -210,12 +230,14 @@ class Channeled implements ChanneledInterface
     if ($this->isClosed())
       throw new \RuntimeException(\sprintf('%s is closed', static::class));
 
-    if (null !== $value && (\is_object($this->channel)
-      && \method_exists($this->channel, 'getProcess')
-      && $this->channel->getProcess() instanceof \UVProcess)) {
-      \uv_write($this->channel->getStdio()[0], \serializer([$value, 'message']) . \EOL, function () {
-      });
-    } elseif (null !== $value && $this->state === 'process' || \is_resource($value)) {
+    if (null !== $value && $this->process instanceof \UVProcess) {
+      \uv_write(
+        $this->channel->getStdio()[0],
+        \serializer([$value, 'message']) . \EOL,
+        function () {
+        }
+      );
+    } elseif (null !== $value && ($this->state === 'process' || \is_resource($value))) {
       $this->input[] = self::validateInput(__METHOD__, $value);
     } elseif (null !== $value) {
       \fwrite($this->ipcOutput, \serializer([$value, 'message']));
@@ -227,7 +249,7 @@ class Channeled implements ChanneledInterface
    */
   public function recv()
   {
-    if (\is_object($this->channel) && \method_exists($this->channel, 'getProcess')) {
+    if ($this->process instanceof \UVProcess) {
       return $this->channel->getLast();
     }
 
@@ -312,6 +334,7 @@ class Channeled implements ChanneledInterface
 
   public function getIterator()
   {
+    $this->state = 'process';
     $this->open = true;
 
     while ($this->open || $this->input) {

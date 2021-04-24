@@ -265,25 +265,26 @@ class Future implements FutureInterface
   public function start(): FutureInterface
   {
     $this->startTime = \microtime(true);
-
     if ($this->process instanceof \UVProcess) {
-      if ($this->out instanceof \UVPipe) {
-        @\uv_read_start($this->out, function ($out, $nRead, $buffer) {
-          if ($nRead > 0) {
-            $data = $this->clean($buffer);
-            $this->displayProgress('out', $data);
-          }
-        });
-      }
+      if ($this->uvCounter === 0) {
+        if ($this->out instanceof \UVPipe) {
+          @\uv_read_start($this->out, function ($out, $nRead, $buffer) {
+            if ($nRead > 0) {
+              $data = $this->clean($buffer);
+              $this->displayProgress('out', $data);
+            }
+          });
+        }
 
-      if ($this->err instanceof \UVPipe) {
-        @\uv_read_start($this->err, function ($err, $nRead, $buffer) {
-          if ($nRead > 0) {
-            $data = $this->clean($buffer);
-            $this->processError .= $data;
-            $this->displayProgress('err', $data);
-          }
-        });
+        if ($this->err instanceof \UVPipe) {
+          @\uv_read_start($this->err, function ($err, $nRead, $buffer) {
+            if ($nRead > 0) {
+              $data = $this->clean($buffer);
+              $this->processError .= $data;
+              $this->displayProgress('err', $data);
+            }
+          });
+        }
       }
     } else {
       $this->process->start(function ($type, $buffer) {
@@ -477,6 +478,13 @@ class Future implements FutureInterface
     return $this;
   }
 
+  public function clean($output = null)
+  {
+    return \is_string($output)
+      ? \str_replace(FutureInterface::INVALID, '', $output)
+      : $output;
+  }
+
   protected function decode($output, $errorSet = false)
   {
     if (\is_string($output)) {
@@ -497,7 +505,7 @@ class Future implements FutureInterface
   protected function decoded($buffer = null, $errorSet = false)
   {
     if (!empty($buffer)) {
-      return $this->clean($this->decode($buffer, $errorSet));
+      return $this->decode($this->clean($buffer), $errorSet);
     }
   }
 
@@ -507,7 +515,7 @@ class Future implements FutureInterface
       $processOutput = $this->processOutput;
       $this->processOutput = null;
 
-      $this->output = \deserialize($this->decoded($processOutput, true));
+      $this->output = $this->decoded($processOutput, true);
     }
 
     return $this->output;
@@ -557,10 +565,6 @@ class Future implements FutureInterface
 
     if (!$this->finalResult) {
       $this->finalResult = $this->decoded($this->lastResult);
-      if (\is_base64($this->finalResult) !== false) {
-        $this->lastResult = $this->clean($this->finalResult);
-        $this->finalResult = $this->decoded($this->lastResult);
-      }
 
       if (\is_array($this->finalResult) && isset($this->finalResult[1]) && $this->finalResult[1] === 'final') {
         [$this->finalResult,, $___parallel___] = $this->finalResult;
@@ -654,13 +658,6 @@ class Future implements FutureInterface
     return $this;
   }
 
-  public function clean($output = null)
-  {
-    return \is_string($output)
-      ? \str_replace(FutureInterface::INVALID, '', $output)
-      : $output;
-  }
-
   /**
    * Display child process output, if set.
    */
@@ -694,7 +691,7 @@ class Future implements FutureInterface
 
     if (\count($this->progressCallbacks) > 0) {
       foreach ($this->progressCallbacks as $progressCallback) {
-        if (\is_string($liveOutput))
+        if (\is_string($liveOutput) && !\is_base64($liveOutput))
           $progressCallback($type, $liveOutput);
       }
     }
