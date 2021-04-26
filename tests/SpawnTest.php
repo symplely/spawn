@@ -108,7 +108,7 @@ class SpawnTest extends TestCase
       usleep(1000);
     });
 
-    $this->assertTrue($future->getProcess() instanceof \UVProcess);
+    $this->assertTrue($future->getHandler() instanceof \UVProcess);
     $this->assertIsNumeric($future->getId());
     $this->assertTrue($future->isRunning());
     $this->assertFalse($future->isTimedOut());

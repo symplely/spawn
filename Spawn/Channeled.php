@@ -16,6 +16,8 @@ use Error;
  */
 class Channeled implements ChanneledInterface
 {
+  const Infinite = -1;
+
   protected static $channels = [];
   protected static $anonymous = 0;
   protected $name = '';
@@ -30,7 +32,7 @@ class Channeled implements ChanneledInterface
   private $state = 'libuv';
 
   /**
-   * IPC handle
+   * IPC `parent` Future handle
    *
    * @var Object|Future
    */
@@ -42,20 +44,15 @@ class Channeled implements ChanneledInterface
 
   public function __destruct()
   {
-    if (self::isChannel($this->name)) {
-      unset(self::$channels[$this->name]);
-      $this->name = null;
-    } elseif (self::isChannel($this->index)) {
-      unset(self::$channels[$this->index]);
-      $this->index = null;
-    }
-
     $this->channel = null;
     $this->process = null;
   }
 
   public function __construct(int $capacity = -1, string $name = __FILE__, bool $anonymous = true)
   {
+    if (($capacity < -1) || ($capacity == 0))
+      throw new \TypeError('capacity may be -1 for unlimited, or a positive integer');
+
     \stream_set_read_buffer($this->ipcInput, 0);
     \stream_set_write_buffer($this->ipcOutput, 0);
     \stream_set_read_buffer($this->ipcError, 0);
@@ -88,14 +85,19 @@ class Channeled implements ChanneledInterface
     foreach (self::$channels as $key => $instance) {
       if (self::isChannel($key)) {
         unset($instance);
+        unset(self::$channels[$key]);
       }
     }
   }
 
   public static function make(string $name, int $capacity = -1): ChanneledInterface
   {
-    if (self::isChannel($name))
+    if (self::isChannel($name)) {
+      if (self::$channels[$name]->getFuture() === null && !self::$channels[$name]->isClose())
+        return self::$channels[$name];
+
       throw new Error(\sprintf('channel named %s already exists', $name));
+    }
 
     return new self($capacity, $name, false);
   }
@@ -110,24 +112,30 @@ class Channeled implements ChanneledInterface
     if ($___channeled___ === 'parallel')
       return new self(-1, $name, false);
 
-    throw new Error(\sprintf('channel named %s %s not found', $name));
+    throw new Error(\sprintf('channel named %s not found', $name));
   }
 
   /**
-   * Set `Channel` parent `Future` handle.
+   * Set `Channel` to parent's `Future` handle.
    *
    * @param Object|Future $handle Use by `send()`, `recv()`, and `kill()`
    *
    * @return ChanneledInterface
    */
-  public function setHandle($handle): ChanneledInterface
+  public function setFuture($handle): ChanneledInterface
   {
-    if (\is_object($handle) && \method_exists($handle, 'getProcess')) {
+    $this->futureSet = false;
+    if (\is_object($handle) && \method_exists($handle, 'getHandler')) {
       $this->channel = $handle;
-      $this->process = $handle->getProcess();
+      $this->process = $handle->getHandler();
     }
 
     return $this;
+  }
+
+  public function getFuture(): ?FutureInterface
+  {
+    return $this->channel;
   }
 
   public function setState($future = 'process'): ChanneledInterface
@@ -146,6 +154,9 @@ class Channeled implements ChanneledInterface
 
   public function close(): void
   {
+    if ($this->isClosed())
+      throw new Error(\sprintf('channel(%s) already closed', $this->name));
+
     $this->open = false;
   }
 
@@ -168,89 +179,93 @@ class Channeled implements ChanneledInterface
     return isset(self::$channels[$name]) && self::$channels[$name] instanceof ChanneledInterface;
   }
 
-  /**
-   * @codeCoverageIgnore
-   */
-  public function __send($value): void
+  public function send($value): void
   {
     if ($this->isClosed())
-      throw new \RuntimeException(\sprintf('%s is closed', static::class));
+      throw new Error(\sprintf('channel(%s) closed', $this->name));
+
+    if (null !== $value) {
+      if (\is_array($value)) {
+        $values = [];
+        foreach ($value as $key => $closure) {
+          if ($closure instanceof \Closure) {
+            $values[$key] = \spawn_encode($closure);
+          } else {
+            $values[$key] = $closure;
+          }
+        }
+
+        if (\count($values) > 0)
+          $value = $values;
+      }
+
+      if ($value instanceof \Closure)
+        $value = \spawn_encode($value);
+    }
 
     if (null !== $value && $this->process instanceof \UVProcess) {
       $futureInput = $this->channel->getStdio()[0];
       $future = $this->channel;
+      if (!$future->isStarted()) {
+        $future->start();
+        if ($future->getChannelState() === Future::STATE[3])
+          $future->channelState(0);
+      }
 
-      $future->loopAdd();
+      $checkState = $future->getChannelState() !== Future::STATE[3] && $future->getChannelState() !== Future::STATE[2];
+      if ($checkState)
+        $future->channelAdd();
+
       \uv_write(
         $futureInput,
         \serializer([$value, 'message']) . \EOL,
-        function () use ($future) {
-          $future->loopRemove();
+        function () use ($future, $checkState) {
+          if ($checkState)
+            $future->channelRemove();
         }
       );
 
-      $future->loopTick();
+      if ($checkState)
+        $future->channelTick();
     } elseif (null !== $value && $this->state === 'process' || \is_resource($value)) {
       $this->input[] = self::validateInput(__METHOD__, $value);
     } elseif (null !== $value) {
       \fwrite($this->ipcOutput, \serializer([$value, 'message']));
+      \usleep(5);
     }
   }
 
-  /**
-   * @codeCoverageIgnore
-   */
-  public function __recv()
-  {
-    if ($this->process instanceof \UVProcess) {
-      $futureOutput = $this->channel->getStdio()[1];
-      $future = $this->channel;
-      $future->loopAdd();
-
-      if (!$future->isStarted()) {
-        $future->start();
-        @\uv_read_start($futureOutput, function ($out, $nRead, $buffer) use ($future) {
-          if ($nRead > 0) {
-            $future->loopRemove();
-            $data = $future->clean($buffer);
-            $future->displayProgress('out', $data);
-          }
-        });
-      }
-
-      $future->loopTick();
-      return $future->getMessage();
-    }
-
-    return $this->isMessage(\trim(\fgets($this->ipcInput), \EOL));
-  }
-
-  public function send($value): void
-  {
-    if ($this->isClosed())
-      throw new \RuntimeException(\sprintf('%s is closed', static::class));
-
-    if (null !== $value && $this->process instanceof \UVProcess) {
-      \uv_write(
-        $this->channel->getStdio()[0],
-        \serializer([$value, 'message']) . \EOL,
-        function () {
-        }
-      );
-    } elseif (null !== $value && ($this->state === 'process' || \is_resource($value))) {
-      $this->input[] = self::validateInput(__METHOD__, $value);
-    } elseif (null !== $value) {
-      \fwrite($this->ipcOutput, \serializer([$value, 'message']));
-    }
-  }
-
-  /**
-   * @codeCoverageIgnore
-   */
   public function recv()
   {
+    if ($this->isClosed())
+      throw new Error(\sprintf('channel(%s) closed', $this->name));
+
     if ($this->process instanceof \UVProcess) {
-      return $this->channel->getLast();
+      $future = $this->channel;
+      if (!$future->isStarted()) {
+        $future->start();
+        $future->channelState(0);
+      }
+
+      $checkState = $future->getChannelState() !== Future::STATE[3] && $future->getChannelState() !== Future::STATE[2];
+      if ($checkState) {
+        $future->channelAdd();
+      }
+
+      if ($checkState) {
+        $future->channelTick();
+        $value = $future->getMessage();
+
+        while (\is_null($value)) {
+          $future->channelAdd();
+          $future->channelTick();
+          $value = $future->getMessage();
+        }
+
+        return $value;
+      }
+
+      return $future->getLast();
     }
 
     return $this->isMessage(\trim(\fgets($this->ipcInput), \EOL));
@@ -263,7 +278,19 @@ class Channeled implements ChanneledInterface
   {
     $message = \deserialize($input);
     if (\is_array($message) && isset($message[1]) && $message[1] === 'message') {
-      return $message[0];
+      $message = $message[0];
+      if (\is_array($message)) {
+        $messages = [];
+        foreach ($message as $key => $closure) {
+          if (\is_base64($closure))
+            $messages[$key] = \spawn_decode($closure);
+          else
+            $messages[$key] = $closure;
+        }
+
+        if (\count($messages) > 0)
+          $message = $messages;
+      }
     }
 
     return $message;

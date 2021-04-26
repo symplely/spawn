@@ -35,7 +35,6 @@ interface ChanneledInterface extends \IteratorAggregate
   /**
    * Shall recv a value from this channel
    *
-   * @param int $length will read to `EOL` if not set.
    * @return mixed
    */
   public function recv();

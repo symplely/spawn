@@ -4,7 +4,6 @@ namespace Async\Tests;
 
 use Async\Spawn\Spawn;
 use Async\Spawn\Channeled;
-use Async\Spawn\ChanneledInterface;
 use PHPUnit\Framework\TestCase;
 
 class ChanneledFallbackTest extends TestCase
@@ -35,7 +34,7 @@ class ChanneledFallbackTest extends TestCase
         }
       );
 
-    $ipc->setHandle($future);
+    $ipc->setFuture($future);
     \spawn_run($future);
     $this->assertSame('pingpangpong', $future->getOutput());
     $this->assertSame('pong', $future->getLast());
@@ -60,7 +59,7 @@ class ChanneledFallbackTest extends TestCase
         }
       );
 
-    $this->expectException(\RuntimeException::class);
+    $this->expectException(\Error::class);
     \spawn_run($future);
   }
 
@@ -90,7 +89,7 @@ class ChanneledFallbackTest extends TestCase
         $input->close();
       });
 
-    $input->setHandle($future);
+    $input->setFuture($future);
     $future->run();
     $this->assertSame('123', \spawn_output($future));
   }
@@ -107,7 +106,7 @@ class ChanneledFallbackTest extends TestCase
       $ipc->passthru();
     }, 10, $input);
 
-    $input->setHandle($future);
+    $input->setFuture($future);
     $future->start();
     $input->send('ping');
     $future->wait();
@@ -133,7 +132,7 @@ class ChanneledFallbackTest extends TestCase
         }
       });
 
-    $input->setHandle($future);
+    $input->setFuture($future);
     $future->run();
 
     $this->assertSame(0, $i, 'Channeled->then callback should be called only when the input *becomes* empty');
@@ -157,7 +156,7 @@ class ChanneledFallbackTest extends TestCase
     $futures->start();
     $output = [];
 
-    $future = $futures->getProcess();
+    $future = $futures->getHandler();
     foreach ($future as $type => $data) {
       $output[] = [$type, $data];
       break;
@@ -188,7 +187,7 @@ class ChanneledFallbackTest extends TestCase
     $futures->start();
     $output = [];
 
-    $future = $futures->getProcess();
+    $future = $futures->getHandler();
     foreach ($future->getIterator($future::ITER_NON_BLOCKING | $future::ITER_KEEP_OUTPUT) as $type => $data) {
       $output[] = [$type, $futures->clean($data)];
       break;

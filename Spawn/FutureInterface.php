@@ -11,8 +11,6 @@ interface FutureInterface
   /**
    * Data deem invalid.
    *
-   * The second item is always used to write data to channels output stream.
-   *
    * @var array
    */
   const INVALID = ['Tjs='];
@@ -228,11 +226,11 @@ interface FutureInterface
   public function displayOff(): FutureInterface;
 
   /**
-   * The handle for the PHP process.
+   * The **PHP** process handler, Either `Process` or `UVProcess`.
    *
    * @return Process|\UVProcess
    */
-  public function getProcess();
+  public function getHandler();
 
   /**
    * The UVPipe handles for `stdin`, `stdout`, `stderr` of `libuv`

@@ -62,13 +62,13 @@ class SpawnFallbackTest extends TestCase
 
     $p2 = spawn(function () {
       stream_copy_to_stream(STDIN, STDOUT);
-    }, 5, $p1->getProcess());
+    }, 5, $p1->getHandler());
 
     $p1->start();
     $p2->run();
 
     $this->assertSame('123', $p1->getErrorOutput());
-    $this->assertSame('', $p1->getProcess()->getOutput());
+    $this->assertSame('', $p1->getHandler()->getOutput());
     $this->assertNull($p2->getErrorOutput());
     $this->assertSame('456', $p2->getOutput());
   }
@@ -113,7 +113,7 @@ class SpawnFallbackTest extends TestCase
       usleep(1000);
     });
 
-    $this->assertTrue($future->getProcess() instanceof Process);
+    $this->assertTrue($future->getHandler() instanceof Process);
     $this->assertIsNumeric($future->getId());
     $this->assertFalse($future->isRunning());
     $this->assertFalse($future->isTimedOut());

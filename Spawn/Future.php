@@ -20,6 +20,14 @@ use Async\Spawn\FutureInterface;
  */
 class Future implements FutureInterface
 {
+
+  /**
+   * Channel status state.
+   * 0 - `reading`, 1 - `writing`, 2 - `progressing`, 3 - `pending`
+   * @var string
+   */
+  const STATE = ['reading', 'writing', 'progressing', 'pending'];
+
   protected $timeout = null;
 
   /**
@@ -56,6 +64,13 @@ class Future implements FutureInterface
   protected $progressCallbacks = [];
   protected $signalCallbacks = [];
   protected $messages = null;
+
+  /**
+   * Channel current state, Either `reading`, `writing`, `progressing`, `pending`.
+   *
+   * @var string
+   */
+  protected $channelState = self::STATE[3];
 
   /**
    * @var int
@@ -120,7 +135,7 @@ class Future implements FutureInterface
 
   public function close()
   {
-    if ($this->process instanceof Process || Spawn::isBypass()) {
+    if ($this->process instanceof Process || Spawn::isIntegration()) {
       $this->flush();
     }
 
@@ -187,21 +202,21 @@ class Future implements FutureInterface
 
         if ($signal) {
           if ($signal === \SIGINT && $future->status === 'timeout') {
-            if (!Spawn::isBypass())
+            if (!Spawn::isIntegration())
               $future->triggerTimeout($future->isYield);
           } else {
             $future->status = 'signaled';
             $future->signal = $signal;
-            if (!Spawn::isBypass())
+            if (!Spawn::isIntegration())
               $future->triggerSignal($signal);
           }
         } elseif ($stat === 0) {
           $future->status = true;
-          if (!Spawn::isBypass())
+          if (!Spawn::isIntegration())
             $future->triggerSuccess($future->isYield);
         } elseif ($stat === 1) {
           $future->status = false;
-          if (!Spawn::isBypass())
+          if (!Spawn::isIntegration())
             $future->triggerError($future->isYield);
         }
 
@@ -211,7 +226,7 @@ class Future implements FutureInterface
           }
         }
 
-        if (!Spawn::isBypass())
+        if (!Spawn::isIntegration())
           $future->flush();
       }
     };
@@ -266,25 +281,23 @@ class Future implements FutureInterface
   {
     $this->startTime = \microtime(true);
     if ($this->process instanceof \UVProcess) {
-      if ($this->uvCounter === 0) {
-        if ($this->out instanceof \UVPipe) {
-          @\uv_read_start($this->out, function ($out, $nRead, $buffer) {
-            if ($nRead > 0) {
-              $data = $this->clean($buffer);
-              $this->displayProgress('out', $data);
-            }
-          });
-        }
+      if ($this->out instanceof \UVPipe) {
+        @\uv_read_start($this->out, function ($out, $nRead, $buffer) {
+          if ($nRead > 0) {
+            $data = $this->clean($buffer);
+            $this->displayProgress('out', $data);
+          }
+        });
+      }
 
-        if ($this->err instanceof \UVPipe) {
-          @\uv_read_start($this->err, function ($err, $nRead, $buffer) {
-            if ($nRead > 0) {
-              $data = $this->clean($buffer);
-              $this->processError .= $data;
-              $this->displayProgress('err', $data);
-            }
-          });
-        }
+      if ($this->err instanceof \UVPipe) {
+        @\uv_read_start($this->err, function ($err, $nRead, $buffer) {
+          if ($nRead > 0) {
+            $data = $this->clean($buffer);
+            $this->processError .= $data;
+            $this->displayProgress('err', $data);
+          }
+        });
       }
     } else {
       $this->process->start(function ($type, $buffer) {
@@ -341,17 +354,38 @@ class Future implements FutureInterface
     return yield $this->getResult();
   }
 
-  public function loopAdd()
+  /**
+   * Sets the `Channel` current state, Either `reading`, `writing`, `progressing`, `pending`.
+   *
+   * @param integer $status 0 - `reading`, 1 - `writing`, 2 - `progressing`, 3 - `pending`.
+   * @return void
+   */
+  public function channelState(int $status)
+  {
+    $this->channelState = self::STATE[$status];
+  }
+
+  /**
+   * Return current `Channel` state, Either `reading`, `writing`, `progressing`, `pending`.
+   *
+   * @return string
+   */
+  public function getChannelState()
+  {
+    return $this->channelState;
+  }
+
+  public function channelAdd()
   {
     $this->uvCounter++;
   }
 
-  public function loopRemove()
+  public function channelRemove()
   {
     $this->uvCounter--;
   }
 
-  public function loopTick()
+  public function channelTick()
   {
     \uv_run(self::$uv, ($this->uvCounter ? \UV::RUN_ONCE : \UV::RUN_NOWAIT));
   }
@@ -457,8 +491,11 @@ class Future implements FutureInterface
   {
     $message = $this->decoded($input);
     if (\is_array($message) && isset($message[1]) && $message[1] === 'message') {
-      $this->messages->enqueue($message[0]);
-      return true;
+      $data = $message[0];
+      if (!\is_null($data)) {
+        $this->messages->enqueue($data);
+        return true;
+      }
     }
 
     return false;
@@ -575,7 +612,7 @@ class Future implements FutureInterface
     return $this->finalResult;
   }
 
-  public function getProcess()
+  public function getHandler()
   {
     return $this->process;
   }
@@ -681,18 +718,31 @@ class Future implements FutureInterface
 
   public function triggerProgress(string $type, $buffer)
   {
-    $liveOutput = '';
+    $liveOutput = null;
     if ($this->isMessage($buffer)) {
-      $liveOutput = $this->getMessage();
-      $this->processOutput .= $this->rawLastResult = $liveOutput;
+      switch ($this->channelState) {
+        case self::STATE[0]:
+          $this->channelRemove();
+        case self::STATE[1]:
+          break;
+        case self::STATE[2]:
+        case self::STATE[3]:
+          $liveOutput = $this->getMessage();
+          $this->processOutput .= $this->rawLastResult = $liveOutput;
+          break;
+      }
     } else {
       $liveOutput = $this->lastResult = $buffer;
     }
 
     if (\count($this->progressCallbacks) > 0) {
       foreach ($this->progressCallbacks as $progressCallback) {
-        if (\is_string($liveOutput) && !\is_base64($liveOutput))
+        if (\is_string($liveOutput) && !\is_base64($liveOutput)) {
+          if ($this->getChannelState() === Future::STATE[3])
+            $this->channelState(2);
+
           $progressCallback($type, $liveOutput);
+        }
       }
     }
   }

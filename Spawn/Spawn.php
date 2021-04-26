@@ -40,7 +40,7 @@ class Spawn
     protected static $useUv = true;
 
     /** @var bool */
-    protected static $bypass = false;
+    protected static $integrationMode = false;
 
     /**
      * @codeCoverageIgnore
@@ -149,7 +149,7 @@ class Spawn
      *
      * @param \UVLoop|null $loop - Set UVLoop handle, this feature is only available when using `libuv`.
      * @param bool $isYield - Set/expects the launched sub processes to be called and using the `yield` keyword.
-     * @param bool $bypass - Bypass calling `uv_spawn` callbacks handlers.
+     * @param bool $integrationMode - Bypass calling `uv_spawn` callbacks handlers.
      * - The callbacks handlers are for standalone use.
      * - The `uv_spawn` callback will only set process status.
      * - This feature is for `Coroutine` package or any third party package.
@@ -158,29 +158,29 @@ class Spawn
      *
      * @codeCoverageIgnore
      */
-    public static function setup($loop, bool $isYield = true, bool $bypass = true, bool $useUv = true): void
+    public static function setup($loop, bool $isYield = true, bool $integrationMode = true, bool $useUv = true): void
     {
         if ($loop instanceof \UVLoop) {
             Future::uvLoop($loop);
         }
 
-        self::$bypass = $bypass;
+        self::$integrationMode = $integrationMode;
         self::$isYield = $isYield;
         self::$useUv = $useUv;
     }
 
     /**
-     * Should `uv_spawn` package just set `future` process status, don't call callback handlers.
-     * - The callbacks handlers are for standalone use.
-     * - The `uv_spawn` preset callback will only set process status.
+     * Returning `false` means:
+     *
+     * - The callbacks handlers will be executed, system in standalone mode, if `true` preset callbacks would only set status.
      * - This feature is for `Coroutine` package or any third party package.
      *
      * @return bool
      * @internal
      */
-    public static function isBypass(): bool
+    public static function isIntegration(): bool
     {
-        return self::$bypass;
+        return self::$integrationMode;
     }
 
     /**

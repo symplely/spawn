@@ -338,7 +338,7 @@ if (!\function_exists('spawn')) {
 
     $future = Spawn::create($executable, 0, $channel, false)->displayOn();
     if ($channel instanceof Channeled)
-      $channel->setHandle($future);
+      $channel->setFuture($future);
 
     return $future;
   }
@@ -412,7 +412,7 @@ if (!\function_exists('spawn')) {
    *
    * @codeCoverageIgnore
    */
-  function spawn_encode(string $task): string
+  function spawn_encode($task): string
   {
     return Spawn::encodeTask($task);
   }
@@ -555,7 +555,7 @@ if (!\function_exists('spawn')) {
    *
    * @param \UVLoop|null $loop - Set UVLoop handle, this feature is only available when using `libuv`.
    * @param bool $isYield - Set/expects the launched sub processes to be called and using the `yield` keyword.
-   * @param bool $bypass -Should `uv_spawn` package just set `future` process status, don't call callback handlers.
+   * @param bool $integrationMode -Should `uv_spawn` package just set `future` process status, don't call callback handlers.
    * - The callbacks handlers are for this library standalone use.
    * - The `uv_spawn` preset callback will only set process status.
    * - This feature is for `Coroutine` package or any third party package.
@@ -564,8 +564,8 @@ if (!\function_exists('spawn')) {
    *
    * @codeCoverageIgnore
    */
-  function spawn_setup($loop, bool $isYield = true, bool $bypass = true, bool $useUv = true): void
+  function spawn_setup($loop, bool $isYield = true, bool $integrationMode = true, bool $useUv = true): void
   {
-    Spawn::setup($loop, $isYield, $bypass, $useUv);
+    Spawn::setup($loop, $isYield, $integrationMode, $useUv);
   }
 }
