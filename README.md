@@ -206,7 +206,7 @@ $future = Spawn::create(function () {
  * Setup for third party integration.
  *
  * @param UVLoop|null $loop - Set UVLoop handle, this feature is only available when using `libuv`.
- * @param bool $isYield - Set/expects the launched sub processes to be called and using the `yield` keyword.
+ * @param bool $isYield - Set/expects the futureed sub processes to be called and using the `yield` keyword.
  * @param bool $bypass - Bypass calling `uv_spawn` callbacks handlers.
  * - The callbacks handlers are for this library standalone use.
  * - The `uv_spawn` callback will only set process status.

@@ -28,7 +28,7 @@ $future = \spawn(
   }
 });
 
-$ipc->setHandle($future);
+$ipc->setFuture($future);
 $result = \spawn_run($future);
 echo \spawn_output($future) . \PHP_EOL;
 echo \spawn_result($future) . \PHP_EOL;

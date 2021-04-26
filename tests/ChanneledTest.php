@@ -4,6 +4,7 @@ namespace Async\Tests;
 
 use Async\Spawn\Channeled as Channel;
 use Async\Spawn\ChanneledInterface;
+use DateTime;
 use PHPUnit\Framework\TestCase;
 
 class ChanneledTest extends TestCase
@@ -147,15 +148,15 @@ class ChanneledTest extends TestCase
 
     Channel::make("name", -2);
   }
+
   /*
   public function testChannelArguments()
   {
-    $this->expectException(\Error::class);
-    $this->expectExceptionMessageMatches('/[value of type DateTime is illegal]/');
-
     $channel = Channel::make("buffer", Channel::Infinite);
 
     $channel->send(new \DateTime);
+    $data = $channel->recv();
+    $this->assertInstanceOf(\DateTime::class, $data);
   }
   public function testChannelClosureArrays()
   {

@@ -22,6 +22,9 @@ class Channeled implements ChanneledInterface
   protected static $anonymous = 0;
   protected $name = '';
   protected $index = 0;
+  protected $capacity = null;
+  protected $type = null;
+  protected $buffered = null;
 
   /**
    * @var callable|null
@@ -32,31 +35,40 @@ class Channeled implements ChanneledInterface
   private $state = 'libuv';
 
   /**
-   * IPC `parent` Future handle
+   * future `parent` Future handle
    *
    * @var Object|Future
    */
   protected $channel = null;
   protected $process = null;
-  protected $ipcInput = \STDIN;
-  protected $ipcOutput = \STDOUT;
-  protected $ipcError = \STDERR;
+  protected $futureInput = \STDIN;
+  protected $futureOutput = \STDOUT;
+  protected $futureError = \STDERR;
 
   public function __destruct()
   {
+    $this->open = false;
     $this->channel = null;
     $this->process = null;
   }
 
-  public function __construct(int $capacity = -1, string $name = __FILE__, bool $anonymous = true)
-  {
+  public function __construct(
+    int $capacity = -1,
+    string $name = __FILE__,
+    bool $anonymous = true
+  ) {
     if (($capacity < -1) || ($capacity == 0))
       throw new \TypeError('capacity may be -1 for unlimited, or a positive integer');
 
-    \stream_set_read_buffer($this->ipcInput, 0);
-    \stream_set_write_buffer($this->ipcOutput, 0);
-    \stream_set_read_buffer($this->ipcError, 0);
-    \stream_set_write_buffer($this->ipcError, 0);
+    \stream_set_read_buffer($this->futureInput, 0);
+    \stream_set_write_buffer($this->futureOutput, 0);
+    \stream_set_read_buffer($this->futureError, 0);
+    \stream_set_write_buffer($this->futureError, 0);
+
+    $this->type = empty($capacity) ? 'unbuffered' : 'buffered';
+    $this->capacity = $capacity;
+    //$this->buffered = new \SplQueue;
+
     if ($anonymous) {
       self::$anonymous++;
       $this->index = self::$anonymous;
@@ -97,6 +109,7 @@ class Channeled implements ChanneledInterface
         return self::$channels[$name];
 
       throw new Error(\sprintf('channel named %s already exists', $name));
+      //throw new Existence(\sprintf('channel named %s already exists', $name));
     }
 
     return new self($capacity, $name, false);
@@ -113,6 +126,7 @@ class Channeled implements ChanneledInterface
       return new self(-1, $name, false);
 
     throw new Error(\sprintf('channel named %s not found', $name));
+    //throw new Existence(\sprintf('channel named %s not found', $name));
   }
 
   /**
@@ -156,6 +170,7 @@ class Channeled implements ChanneledInterface
   {
     if ($this->isClosed())
       throw new Error(\sprintf('channel(%s) already closed', $this->name));
+    //throw new Closed(\sprintf('channel(%s) closed', $this->name));
 
     $this->open = false;
   }
@@ -183,6 +198,8 @@ class Channeled implements ChanneledInterface
   {
     if ($this->isClosed())
       throw new Error(\sprintf('channel(%s) closed', $this->name));
+    //throw new Closed(\sprintf('channel(%s) closed', $this->name));
+
 
     if (null !== $value) {
       if (\is_array($value)) {
@@ -206,13 +223,17 @@ class Channeled implements ChanneledInterface
     if (null !== $value && $this->process instanceof \UVProcess) {
       $futureInput = $this->channel->getStdio()[0];
       $future = $this->channel;
+
+      //if ($this->type === 'buffered' && $this->buffered->count() > $this->capacity)
+      //  return $this->buffered->enqueue($values);
+
       if (!$future->isStarted()) {
         $future->start();
         if ($future->getChannelState() === Future::STATE[3])
           $future->channelState(0);
       }
 
-      $checkState = $future->getChannelState() !== Future::STATE[3] && $future->getChannelState() !== Future::STATE[2];
+      $checkState = $future->isChanneling();
       if ($checkState)
         $future->channelAdd();
 
@@ -227,18 +248,23 @@ class Channeled implements ChanneledInterface
 
       if ($checkState)
         $future->channelTick();
-    } elseif (null !== $value && $this->state === 'process' || \is_resource($value)) {
+    } elseif (null !== $value && ($this->state === 'process' || \is_resource($value))) {
       $this->input[] = self::validateInput(__METHOD__, $value);
     } elseif (null !== $value) {
-      \fwrite($this->ipcOutput, \serializer([$value, 'message']));
+      \fwrite($this->futureOutput, \serializer([$value, 'message']));
+      \fflush($this->futureOutput);
       \usleep(5);
     }
   }
 
   public function recv()
   {
+    //if ($this->type === 'buffered' && !$this->buffered->isEmpty())
+    //  return $this->buffered->dequeue();
+
     if ($this->isClosed())
       throw new Error(\sprintf('channel(%s) closed', $this->name));
+    //throw new Closed(\sprintf('channel(%s) closed', $this->name));
 
     if ($this->process instanceof \UVProcess) {
       $future = $this->channel;
@@ -247,7 +273,7 @@ class Channeled implements ChanneledInterface
         $future->channelState(0);
       }
 
-      $checkState = $future->getChannelState() !== Future::STATE[3] && $future->getChannelState() !== Future::STATE[2];
+      $checkState = $future->isChanneling();
       if ($checkState) {
         $future->channelAdd();
       }
@@ -268,7 +294,7 @@ class Channeled implements ChanneledInterface
       return $future->getLast();
     }
 
-    return $this->isMessage(\trim(\fgets($this->ipcInput), \EOL));
+    return $this->isMessage(\trim(\fgets($this->futureInput), \EOL));
   }
 
   /**
@@ -317,9 +343,9 @@ class Channeled implements ChanneledInterface
   {
     // @codeCoverageIgnoreStart
     if ($length === 0)
-      return \trim(\fgets($this->ipcInput), \EOL);
+      return \trim(\fgets($this->futureInput), \EOL);
 
-    return \fread($this->ipcInput, $length);
+    return \fread($this->futureInput, $length);
     // @codeCoverageIgnoreEnd
   }
 
@@ -328,7 +354,7 @@ class Channeled implements ChanneledInterface
    */
   public function write($message): int
   {
-    $written = \fwrite($this->ipcOutput, (string) $message);
+    $written = \fwrite($this->futureOutput, (string) $message);
 
     return $written;
   }
@@ -342,7 +368,7 @@ class Channeled implements ChanneledInterface
    */
   public function error($message): int
   {
-    $written = \fwrite($this->ipcError, (string) $message);
+    $written = \fwrite($this->futureError, (string) $message);
 
     return $written;
   }
@@ -354,7 +380,7 @@ class Channeled implements ChanneledInterface
    */
   public function passthru(): int
   {
-    $written = \stream_copy_to_stream($this->ipcInput, $this->ipcOutput);
+    $written = \stream_copy_to_stream($this->futureInput, $this->futureOutput);
 
     return $written;
   }
@@ -393,6 +419,7 @@ class Channeled implements ChanneledInterface
    * @return mixed The validated input
    *
    * @throws \InvalidArgumentException In case the input is not valid
+   * @throws IllegalValue In case the input is not valid
    */
   protected static function validateInput(string $caller, $input)
   {
@@ -422,6 +449,7 @@ class Channeled implements ChanneledInterface
       }
 
       throw new \InvalidArgumentException(\sprintf('%s only accepts strings, Traversable objects or stream resources.', $caller));
+      //throw new IllegalValue('value is illegal.');
     }
 
     return $input;

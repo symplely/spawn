@@ -375,6 +375,11 @@ class Future implements FutureInterface
     return $this->channelState;
   }
 
+  public function isChanneling()
+  {
+    return ($this->channelState !== Future::STATE[3]) && ($this->channelState !== Future::STATE[2]);
+  }
+
   public function channelAdd()
   {
     $this->uvCounter++;
@@ -385,9 +390,13 @@ class Future implements FutureInterface
     $this->uvCounter--;
   }
 
-  public function channelTick()
+  public function channelTick(?callable $loop = null, ...$args)
   {
-    \uv_run(self::$uv, ($this->uvCounter ? \UV::RUN_ONCE : \UV::RUN_NOWAIT));
+    if (empty($loop)) {
+      \uv_run(self::$uv, ($this->uvCounter ? \UV::RUN_ONCE : \UV::RUN_NOWAIT));
+    } else {
+      $loop(...$args);
+    }
   }
 
   public function wait($waitTimer = 1000, bool $useYield = false)

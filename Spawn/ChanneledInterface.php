@@ -4,12 +4,6 @@ declare(strict_types=1);
 
 namespace Async\Spawn;
 
-/**
- * Provides a way to continuously write to the input of a Process until the channel is closed.
- *
- * Send and receive operations are (async) blocking by default, they can be used
- * to synchronize tasks.
- */
 interface ChanneledInterface extends \IteratorAggregate
 {
   public static function make(string $name, int $capacity = -1): ChanneledInterface;
