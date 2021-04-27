@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Async\Spawn;
 
+use Async\Spawn\Future;
 use Async\Spawn\Process;
+use Async\Spawn\ChanneledObject;
 use Async\Spawn\ChanneledInterface;
 use Error;
 
@@ -50,6 +52,8 @@ class Channeled implements ChanneledInterface
     $this->open = false;
     $this->channel = null;
     $this->process = null;
+    //unset($this->buffered);
+    //$this->buffered = null;
   }
 
   public function __construct(
@@ -196,43 +200,44 @@ class Channeled implements ChanneledInterface
 
   public function send($value): void
   {
+    // global $___channeled___;
+
     if ($this->isClosed())
       throw new Error(\sprintf('channel(%s) closed', $this->name));
     //throw new Closed(\sprintf('channel(%s) closed', $this->name));
 
+
+    //if (empty($___channeled___) && $this->process == null && Future::$channelConnected === false) {
+    //  $this->buffered->enqueue($value);
+    //} else {
     $messaging = 'message';
-    if (null !== $value) {
+    if (null !== $value && $this->state !== 'process') {
       if ($value instanceof \Closure) {
-        $value = \spawn_encode($value);
+        $value = (new ChanneledObject)->add(0, $value, true);
         $messaging = 'closures';
       } elseif (\is_array($value)) {
-        $values = [];
-        foreach ($value as $key => $closure) {
-          if ($closure instanceof \Closure) {
-            $values[$key] = \spawn_encode($closure);
+        $foundClosure = false;
+        $ChanneledObject = new ChanneledObject;
+        foreach ($value as $key => $message) {
+          if ($message instanceof \Closure) {
+            $foundClosure = true;
             $messaging = 'closures';
-          } else {
-            $values[$key] = $closure;
+            $ChanneledObject->add($key, $message, true);
+          } elseif ($foundClosure) {
+            $ChanneledObject->add($key, $message);
           }
         }
 
-        if (\count($values) > 0) {
-          $value = $values;
-        }
+        $value = $ChanneledObject;
       }
     }
-
     if (null !== $value && $this->process instanceof \UVProcess) {
-      $futureInput = $this->channel->getStdio()[0];
+      $channelInput = $this->channel->getStdio()[0];
       $future = $this->channel;
-
-      //if ($this->type === 'buffered' && $this->buffered->count() > $this->capacity)
-      //  return $this->buffered->enqueue($values);
-
       if (!$future->isStarted()) {
         $future->start();
         if ($future->getChannelState() === Future::STATE[3])
-          $future->channelState(0);
+          $future->channelState(1);
       }
 
       $checkState = $future->isChanneling();
@@ -240,7 +245,7 @@ class Channeled implements ChanneledInterface
         $future->channelAdd();
 
       \uv_write(
-        $futureInput,
+        $channelInput,
         \serializer([$value, $messaging]) . \EOL,
         function () use ($future, $checkState) {
           if ($checkState)
@@ -253,15 +258,21 @@ class Channeled implements ChanneledInterface
     } elseif (null !== $value && ($this->state === 'process' || \is_resource($value))) {
       $this->input[] = self::validateInput(__METHOD__, $value);
     } elseif (null !== $value) {
+      if (!\is_resource($this->futureOutput)) {
+        $this->futureOutput = \STDOUT;
+        \stream_set_write_buffer($this->futureOutput, 0);
+      }
+
       \fwrite($this->futureOutput, \serializer([$value, $messaging]));
       \fflush($this->futureOutput);
       \usleep(5);
     }
+    //}
   }
 
   public function recv()
   {
-    //if ($this->type === 'buffered' && !$this->buffered->isEmpty())
+    //if (!$this->buffered->isEmpty())
     //  return $this->buffered->dequeue();
 
     if ($this->isClosed())
@@ -296,6 +307,11 @@ class Channeled implements ChanneledInterface
       return $future->getLast();
     }
 
+    if (!\is_resource($this->futureInput)) {
+      $this->futureInput = \STDIN;
+      \stream_set_read_buffer($this->futureInput, 0);
+    }
+
     return $this->isMessage(\trim(\fgets($this->futureInput), \EOL));
   }
 
@@ -305,22 +321,10 @@ class Channeled implements ChanneledInterface
   protected function isMessage($input)
   {
     $message = \deserialize($input);
-    if (
-      \is_array($message) && isset($message[1])
-      && ($message[1] === 'message' || $message[1] === 'closures')
-    ) {
+    if (\is_array($message) && isset($message[1]) && ($message[1] === 'message' || $message[1] === 'closures')) {
       $message = $message[0];
-      if (\is_array($message)) {
-        $messages = [];
-        foreach ($message as $key => $closure) {
-          if (\is_base64($closure))
-            $messages[$key] = \spawn_decode($closure);
-          else
-            $messages[$key] = $closure;
-        }
-
-        if (\count($messages) > 0)
-          $message = $messages;
+      if ($message instanceof ChanneledObject) {
+        $message = $message();
       }
     }
 
@@ -346,6 +350,11 @@ class Channeled implements ChanneledInterface
    */
   public function read(int $length = 0): string
   {
+    if (!\is_resource($this->futureInput)) {
+      $this->futureInput = \STDIN;
+      \stream_set_read_buffer($this->futureInput, 0);
+    }
+
     // @codeCoverageIgnoreStart
     if ($length === 0)
       return \trim(\fgets($this->futureInput), \EOL);
@@ -359,6 +368,11 @@ class Channeled implements ChanneledInterface
    */
   public function write($message): int
   {
+    if (!\is_resource($this->futureInput)) {
+      $this->futureOutput = \STDOUT;
+      \stream_set_write_buffer($this->futureOutput, 0);
+    }
+
     $written = \fwrite($this->futureOutput, (string) $message);
 
     return $written;

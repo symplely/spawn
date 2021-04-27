@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Async\Spawn\ChanneledObject;
 use Async\Spawn\SerializableException;
 
 $autoload = $argv[1] ? $argv[1] : null;

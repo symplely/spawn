@@ -13,6 +13,7 @@ use Throwable;
 use Async\Spawn\Process;
 use Async\Spawn\SpawnError;
 use Async\Spawn\SerializableException;
+use Async\Spawn\ChanneledObject;
 use Async\Spawn\FutureInterface;
 
 /**
@@ -80,13 +81,13 @@ class Future implements FutureInterface
   protected static $future = [];
   protected static $uv = null;
 
+  public static $channelConnected = false;
+
   private function __construct(
     $process,
     int $id,
     int $timeout = 60,
-    \UVPipe $input = null,
-    \UVPipe $output = null,
-    \UVPipe $error = null,
+    array $stdio,
     \UVTimer $timer = null,
     \UVLoop $loop = null,
     bool $isYield = false,
@@ -95,15 +96,16 @@ class Future implements FutureInterface
     $this->timeout = $timeout;
     $this->process = $process;
     $this->id = $id;
-    $this->in = $input;
-    $this->out = $output;
-    $this->err = $error;
+    $this->in = $stdio[0];
+    $this->out = $stdio[1];
+    $this->err = $stdio[2];
     $this->timer = $timer;
     $this->isYield = $isYield;
     $this->task = $task;
     $this->messages = new \SplQueue();
     self::$uv = $loop;
     self::$future[$id] = $this;
+    self::$channelConnected = true;
   }
 
   /**
@@ -152,11 +154,12 @@ class Future implements FutureInterface
     $this->signal = null;
     unset($this->messages);
     $this->messages = null;
+    self::$channelConnected = false;
   }
 
   public static function create(Process $process, int $id, int $timeout = 0, bool $isYield = false): FutureInterface
   {
-    return new self($process, $id, $timeout, null, null, null, null, null, $isYield);
+    return new self($process, $id, $timeout, [null, null, null], null, null, $isYield);
   }
 
   public static function add(
@@ -263,18 +266,7 @@ class Future implements FutureInterface
       });
     }
 
-    return new self(
-      $process,
-      (int) $getId,
-      $timeout,
-      $in,
-      $out,
-      $err,
-      $timer,
-      $uvLoop,
-      $isYield,
-      $task
-    );
+    return new self($process, (int) $getId, $timeout, [$in, $out, $err], $timer, $uvLoop, $isYield, $task);
   }
 
   public function start(): FutureInterface
@@ -393,7 +385,10 @@ class Future implements FutureInterface
   public function channelTick(?callable $loop = null, ...$args)
   {
     if (empty($loop)) {
-      \uv_run(self::$uv, ($this->uvCounter ? \UV::RUN_ONCE : \UV::RUN_NOWAIT));
+      if ($this->channelState === Future::STATE[0])
+        \uv_run(self::$uv, ($this->uvCounter ? \UV::RUN_ONCE : \UV::RUN_NOWAIT));
+      else
+        \uv_run(self::$uv, \UV::RUN_DEFAULT);
     } else {
       $loop(...$args);
     }
@@ -499,22 +494,10 @@ class Future implements FutureInterface
   protected function isMessage($input): bool
   {
     $message = $this->decoded($input);
-    if (
-      \is_array($message) && isset($message[1])
-      && ($message[1] === 'message' || $message[1] === 'closures')
-    ) {
+    if (\is_array($message) && isset($message[1]) && ($message[1] === 'message' || $message[1] === 'closures')) {
       $data = $message[0];
-      if (\is_array($data)) {
-        $messages = [];
-        foreach ($data as $key => $closure) {
-          if (\is_base64($closure))
-            $messages[$key] = \spawn_decode($closure);
-          else
-            $messages[$key] = $closure;
-        }
-
-        if (\count($messages) > 0)
-          $data = $messages;
+      if ($data instanceof ChanneledObject) {
+        $data = $data();
       }
 
       if (!\is_null($data)) {

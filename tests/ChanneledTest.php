@@ -94,6 +94,19 @@ class ChanneledTest extends TestCase
     }
   }
 
+  public function testChannelRecv()
+  {
+    $channel = Channel::make("channel");
+
+    parallel(function ($channel) {
+      $data = $channel->recv();
+      echo $data;
+    }, $channel);
+
+    $this->expectOutputString('OK');
+    $channel->send("OK");
+  }
+
   public function testChannelDuplicateName()
   {
     $this->expectException(\Error::class);
@@ -149,15 +162,8 @@ class ChanneledTest extends TestCase
     Channel::make("name", -2);
   }
 
-  /*
-  public function testChannelArguments()
-  {
-    $channel = Channel::make("buffer", Channel::Infinite);
 
-    $channel->send(new \DateTime);
-    $data = $channel->recv();
-    $this->assertInstanceOf(\DateTime::class, $data);
-  }
+  /*
   public function testChannelClosureArrays()
   {
     $channel = Channel::make("channel");
