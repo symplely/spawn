@@ -200,24 +200,26 @@ class Channeled implements ChanneledInterface
       throw new Error(\sprintf('channel(%s) closed', $this->name));
     //throw new Closed(\sprintf('channel(%s) closed', $this->name));
 
-
+    $messaging = 'message';
     if (null !== $value) {
-      if (\is_array($value)) {
+      if ($value instanceof \Closure) {
+        $value = \spawn_encode($value);
+        $messaging = 'closures';
+      } elseif (\is_array($value)) {
         $values = [];
         foreach ($value as $key => $closure) {
           if ($closure instanceof \Closure) {
             $values[$key] = \spawn_encode($closure);
+            $messaging = 'closures';
           } else {
             $values[$key] = $closure;
           }
         }
 
-        if (\count($values) > 0)
+        if (\count($values) > 0) {
           $value = $values;
+        }
       }
-
-      if ($value instanceof \Closure)
-        $value = \spawn_encode($value);
     }
 
     if (null !== $value && $this->process instanceof \UVProcess) {
@@ -239,7 +241,7 @@ class Channeled implements ChanneledInterface
 
       \uv_write(
         $futureInput,
-        \serializer([$value, 'message']) . \EOL,
+        \serializer([$value, $messaging]) . \EOL,
         function () use ($future, $checkState) {
           if ($checkState)
             $future->channelRemove();
@@ -251,7 +253,7 @@ class Channeled implements ChanneledInterface
     } elseif (null !== $value && ($this->state === 'process' || \is_resource($value))) {
       $this->input[] = self::validateInput(__METHOD__, $value);
     } elseif (null !== $value) {
-      \fwrite($this->futureOutput, \serializer([$value, 'message']));
+      \fwrite($this->futureOutput, \serializer([$value, $messaging]));
       \fflush($this->futureOutput);
       \usleep(5);
     }
@@ -303,7 +305,10 @@ class Channeled implements ChanneledInterface
   protected function isMessage($input)
   {
     $message = \deserialize($input);
-    if (\is_array($message) && isset($message[1]) && $message[1] === 'message') {
+    if (
+      \is_array($message) && isset($message[1])
+      && ($message[1] === 'message' || $message[1] === 'closures')
+    ) {
       $message = $message[0];
       if (\is_array($message)) {
         $messages = [];

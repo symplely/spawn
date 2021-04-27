@@ -499,8 +499,24 @@ class Future implements FutureInterface
   protected function isMessage($input): bool
   {
     $message = $this->decoded($input);
-    if (\is_array($message) && isset($message[1]) && $message[1] === 'message') {
+    if (
+      \is_array($message) && isset($message[1])
+      && ($message[1] === 'message' || $message[1] === 'closures')
+    ) {
       $data = $message[0];
+      if (\is_array($data)) {
+        $messages = [];
+        foreach ($data as $key => $closure) {
+          if (\is_base64($closure))
+            $messages[$key] = \spawn_decode($closure);
+          else
+            $messages[$key] = $closure;
+        }
+
+        if (\count($messages) > 0)
+          $data = $messages;
+      }
+
       if (!\is_null($data)) {
         $this->messages->enqueue($data);
         return true;
