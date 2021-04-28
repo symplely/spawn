@@ -91,7 +91,8 @@ class Future implements FutureInterface
     \UVTimer $timer = null,
     \UVLoop $loop = null,
     bool $isYield = false,
-    $task = null
+    $task = null,
+    $channel = null
   ) {
     $this->timeout = $timeout;
     $this->process = $process;
@@ -106,6 +107,8 @@ class Future implements FutureInterface
     self::$uv = $loop;
     self::$future[$id] = $this;
     self::$channelConnected = true;
+    if ($channel instanceof Channeled)
+      $channel->setFuture($this);
   }
 
   /**
@@ -157,9 +160,9 @@ class Future implements FutureInterface
     self::$channelConnected = false;
   }
 
-  public static function create(Process $process, int $id, int $timeout = 0, bool $isYield = false): FutureInterface
+  public static function create(Process $process, int $id, int $timeout = 0, bool $isYield = false, $channel = null): FutureInterface
   {
-    return new self($process, $id, $timeout, [null, null, null], null, null, $isYield);
+    return new self($process, $id, $timeout, [null, null, null], null, null, $isYield, null, $channel);
   }
 
   public static function add(
@@ -170,7 +173,8 @@ class Future implements FutureInterface
     string $autoload = '',
     bool $isInitialized = false,
     int $timeout = 0,
-    bool $isYield = false
+    bool $isYield = false,
+    $channel = null
   ): FutureInterface {
     if (!$isInitialized) {
       [$autoload, $containerScript, $isInitialized] = Spawn::init();
@@ -266,7 +270,7 @@ class Future implements FutureInterface
       });
     }
 
-    return new self($process, (int) $getId, $timeout, [$in, $out, $err], $timer, $uvLoop, $isYield, $task);
+    return new self($process, (int) $getId, $timeout, [$in, $out, $err], $timer, $uvLoop, $isYield, $task, $channel);
   }
 
   public function start(): FutureInterface
@@ -494,7 +498,7 @@ class Future implements FutureInterface
   protected function isMessage($input): bool
   {
     $message = $this->decoded($input);
-    if (\is_array($message) && isset($message[1]) && ($message[1] === 'message' || $message[1] === 'closures')) {
+    if (Channeled::isMessenger($message)) {
       $data = $message[0];
       if ($data instanceof ChanneledObject) {
         $data = $data();
@@ -507,6 +511,11 @@ class Future implements FutureInterface
     }
 
     return false;
+  }
+
+  public static function isFinal($result): bool
+  {
+    return \is_array($result) && isset($result[1]) && $result[1] === '___final';
   }
 
   public function displayOn(): FutureInterface
@@ -604,6 +613,7 @@ class Future implements FutureInterface
     return $this->decoded($this->rawLastResult);
   }
 
+
   public function getResult()
   {
     global $___parallel___;
@@ -611,7 +621,7 @@ class Future implements FutureInterface
     if (!$this->finalResult) {
       $this->finalResult = $this->decoded($this->lastResult);
 
-      if (\is_array($this->finalResult) && isset($this->finalResult[1]) && $this->finalResult[1] === 'final') {
+      if ($this->isFinal($this->finalResult)) {
         [$this->finalResult,, $___parallel___] = $this->finalResult;
       }
     }

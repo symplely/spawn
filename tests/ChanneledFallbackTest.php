@@ -34,7 +34,6 @@ class ChanneledFallbackTest extends TestCase
         }
       );
 
-    $ipc->setFuture($future);
     \spawn_run($future);
     $this->assertSame('pingpangpong', $future->getOutput());
     $this->assertSame('pong', $future->getLast());
@@ -89,7 +88,6 @@ class ChanneledFallbackTest extends TestCase
         $input->close();
       });
 
-    $input->setFuture($future);
     $future->run();
     $this->assertSame('123', \spawn_output($future));
   }
@@ -106,7 +104,6 @@ class ChanneledFallbackTest extends TestCase
       $ipc->passthru();
     }, 10, $input);
 
-    $input->setFuture($future);
     $future->start();
     $input->send('ping');
     $future->wait();
@@ -132,7 +129,6 @@ class ChanneledFallbackTest extends TestCase
         }
       });
 
-    $input->setFuture($future);
     $future->run();
 
     $this->assertSame(0, $i, 'Channeled->then callback should be called only when the input *becomes* empty');

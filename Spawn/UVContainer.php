@@ -34,11 +34,11 @@ try {
   $results = $task(\spawn_channel());
 
   \fflush(\STDOUT);
-  \usleep(25);
+  \usleep(5);
 
-  \fwrite(\STDOUT, \serializer([$results, 'final', \parallel_globals()]));
+  \fwrite(\STDOUT, \serializer([$results, '___final', \parallel_globals()]));
 
-  \usleep(25);
+  \usleep(5);
   \fflush(\STDOUT);
   exit(0);
 } catch (\Throwable $exception) {

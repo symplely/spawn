@@ -290,27 +290,23 @@ if (\IS_WINDOWS) {
 
 if (!\function_exists('spawn')) {
   /**
-   * Create an sub process by a system command or callable.
+   * Create an Future `sub/child` process either by a **system command** or `callable`.
    *
    * @param callable $executable
    * @param int $timeout
-   * @param Channeled|mixed|null $futureChanneled Set the input content as `stream`, `resource`, `scalar`,
-   *  `Traversable`, or `null` for no input.
-   * - The content will be passed to the underlying process standard input.
-   * - This feature is only available with Symfony `process` class.
-   * - `$futureChanneled` is not available when using `libuv` features.
+   * @param Channeled|mixed|null $channel instance to set the Future IPC handler.
    * @param null|bool $isYield
    *
    * @return FutureInterface
-   * @throws LogicException In case the process is running, and not using `libuv` features.
+   * @throws LogicException In case the `Future` process is already running.
    */
   function spawn(
     $executable,
     int $timeout = 0,
-    $futureChanneled = null,
+    $channel = null,
     bool $isYield = null
   ): FutureInterface {
-    return Spawn::create($executable, $timeout, $futureChanneled, $isYield);
+    return Spawn::create($executable, $timeout, $channel, $isYield);
   }
 
   function parallel($task, ...$argv): FutureInterface
@@ -336,11 +332,7 @@ if (!\function_exists('spawn')) {
       return $task(...$argv);
     };
 
-    $future = Spawn::create($executable, 0, $channel, false)->displayOn();
-    if ($channel instanceof Channeled)
-      $channel->setFuture($future);
-
-    return $future;
+    return Spawn::create($executable, 0, $channel, false)->displayOn();
   }
 
   /**

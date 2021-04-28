@@ -89,10 +89,7 @@ class Spawn
      *
      * @param mixed $task The command to run and its arguments
      * @param int|float|null $timeout The timeout in seconds or null to disable
-     * @param mixed|null $input Set the input content as `stream`, `resource`, `scalar`, `Traversable`, or `null` for no input.
-     * - The content will be passed to the underlying process standard input.
-     * - This feature is only available with Symfony `process` class.
-     * - `$input` is not available when using `libuv` features.
+     * @param Channeled|mixed|null $input instance to set the Future IPC handler.
      * @param null|bool $isYield
      *
      * @return FutureInterface
@@ -119,7 +116,8 @@ class Spawn
                 self::$autoload,
                 self::$isInitialized,
                 $timeout,
-                $useYield
+                $useYield,
+                $input
             );
         } else {
             if ($input instanceof Channeled)
@@ -140,7 +138,7 @@ class Spawn
                 // @codeCoverageIgnoreEnd
             }
 
-            return Future::create($future, (int) self::getId(), $timeout, $useYield);
+            return Future::create($future, (int) self::getId(), $timeout, $useYield, $input);
         }
     }
 

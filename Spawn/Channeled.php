@@ -198,32 +198,29 @@ class Channeled implements ChanneledInterface
     return isset(self::$channels[$name]) && self::$channels[$name] instanceof ChanneledInterface;
   }
 
+  public static function isMessenger($message): bool
+  {
+    return \is_array($message) && isset($message[1]) && ($message[1] === 'message' || $message[1] === 'closures');
+  }
+
   public function send($value): void
   {
-    // global $___channeled___;
-
     if ($this->isClosed())
       throw new Error(\sprintf('channel(%s) closed', $this->name));
     //throw new Closed(\sprintf('channel(%s) closed', $this->name));
 
-
-    //if (empty($___channeled___) && $this->process == null && Future::$channelConnected === false) {
-    //  $this->buffered->enqueue($value);
-    //} else {
     $messaging = 'message';
     if (null !== $value && $this->state !== 'process') {
       if ($value instanceof \Closure) {
         $value = (new ChanneledObject)->add(0, $value, true);
         $messaging = 'closures';
       } elseif (\is_array($value)) {
-        $foundClosure = false;
         $ChanneledObject = new ChanneledObject;
         foreach ($value as $key => $message) {
           if ($message instanceof \Closure) {
-            $foundClosure = true;
             $messaging = 'closures';
             $ChanneledObject->add($key, $message, true);
-          } elseif ($foundClosure) {
+          } else {
             $ChanneledObject->add($key, $message);
           }
         }
@@ -267,14 +264,10 @@ class Channeled implements ChanneledInterface
       \fflush($this->futureOutput);
       \usleep(5);
     }
-    //}
   }
 
   public function recv()
   {
-    //if (!$this->buffered->isEmpty())
-    //  return $this->buffered->dequeue();
-
     if ($this->isClosed())
       throw new Error(\sprintf('channel(%s) closed', $this->name));
     //throw new Closed(\sprintf('channel(%s) closed', $this->name));
@@ -320,8 +313,8 @@ class Channeled implements ChanneledInterface
    */
   protected function isMessage($input)
   {
-    $message = \deserialize($input);
-    if (\is_array($message) && isset($message[1]) && ($message[1] === 'message' || $message[1] === 'closures')) {
+    $message = \deserializer($input);
+    if ($this->isMessenger($message)) {
       $message = $message[0];
       if ($message instanceof ChanneledObject) {
         $message = $message();
