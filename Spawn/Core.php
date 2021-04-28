@@ -553,11 +553,12 @@ if (!\function_exists('spawn')) {
    * - This feature is for `Coroutine` package or any third party package.
    * @param bool $useUv - Turn **on/off** `uv_spawn` for child subprocess operations, will use **libuv** features,
    * if not **true** will use `proc_open` of **symfony/process**.
+   * @param callable|null $channelLoop - the Event Loop routine to use in integrationMode.
    *
    * @codeCoverageIgnore
    */
-  function spawn_setup($loop, bool $isYield = true, bool $integrationMode = true, bool $useUv = true): void
+  function spawn_setup($loop, bool $isYield = true, bool $integrationMode = true, bool $useUv = true, callable $channelLoop = null): void
   {
-    Spawn::setup($loop, $isYield, $integrationMode, $useUv);
+    Spawn::setup($loop, $isYield, $integrationMode, $useUv, $channelLoop);
   }
 }

@@ -81,6 +81,9 @@ class Future implements FutureInterface
   protected static $future = [];
   protected static $uv = null;
 
+  /** @var callable */
+  protected static $channelLoop = null;
+
   public static $channelConnected = false;
 
   private function __construct(
@@ -92,7 +95,8 @@ class Future implements FutureInterface
     \UVLoop $loop = null,
     bool $isYield = false,
     $task = null,
-    $channel = null
+    $channel = null,
+    callable $channelLoop = null
   ) {
     $this->timeout = $timeout;
     $this->process = $process;
@@ -107,6 +111,8 @@ class Future implements FutureInterface
     self::$uv = $loop;
     self::$future[$id] = $this;
     self::$channelConnected = true;
+    if (!empty($channelLoop))
+      self::$channelLoop = $channelLoop;
     if ($channel instanceof Channeled)
       $channel->setFuture($this);
   }
@@ -162,7 +168,7 @@ class Future implements FutureInterface
 
   public static function create(Process $process, int $id, int $timeout = 0, bool $isYield = false, $channel = null): FutureInterface
   {
-    return new self($process, $id, $timeout, [null, null, null], null, null, $isYield, null, $channel);
+    return new self($process, $id, $timeout, [null, null, null], null, null, $isYield, null, $channel, self::$channelLoop);
   }
 
   public static function add(
@@ -174,7 +180,8 @@ class Future implements FutureInterface
     bool $isInitialized = false,
     int $timeout = 0,
     bool $isYield = false,
-    $channel = null
+    $channel = null,
+    $channelLoop
   ): FutureInterface {
     if (!$isInitialized) {
       [$autoload, $containerScript, $isInitialized] = Spawn::init();
@@ -270,7 +277,7 @@ class Future implements FutureInterface
       });
     }
 
-    return new self($process, (int) $getId, $timeout, [$in, $out, $err], $timer, $uvLoop, $isYield, $task, $channel);
+    return new self($process, (int) $getId, $timeout, [$in, $out, $err], $timer, $uvLoop, $isYield, $task, $channel, $channelLoop);
   }
 
   public function start(): FutureInterface
@@ -320,7 +327,7 @@ class Future implements FutureInterface
       $process = clone $this->process;
       $future = $this->create($process, $this->id, $this->timeout);
     } else {
-      $future = self::add($this->task, $this->id, \PHP_BINARY, '', '', false, (int) $this->timeout, $this->isYield);
+      $future = self::add($this->task, $this->id, \PHP_BINARY, '', '', false, (int) $this->timeout, $this->isYield, null, self::$channelLoop);
       if ($this->isRunning())
         $this->stop();
     }
@@ -386,15 +393,21 @@ class Future implements FutureInterface
     $this->uvCounter--;
   }
 
-  public function channelTick(?callable $loop = null, ...$args)
+  public function channelTick()
   {
-    if (empty($loop)) {
+    if (!Spawn::isIntegration()) {
       if ($this->channelState === Future::STATE[0])
         \uv_run(self::$uv, ($this->uvCounter ? \UV::RUN_ONCE : \UV::RUN_NOWAIT));
       else
         \uv_run(self::$uv, \UV::RUN_DEFAULT);
     } else {
-      $loop(...$args);
+      // @codeCoverageIgnoreStart
+      $loop = self::$channelLoop;
+      if (\is_callable($loop))
+        $loop();
+      else
+        \uv_run(self::$uv);
+      // @codeCoverageIgnoreEnd
     }
   }
 
