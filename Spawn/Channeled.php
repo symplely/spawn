@@ -8,7 +8,6 @@ use Async\Spawn\Future;
 use Async\Spawn\Process;
 use Async\Spawn\ChanneledObject;
 use Async\Spawn\ChanneledInterface;
-use Error;
 
 /**
  * Provides a way to continuously communicate until the channel is closed.
@@ -33,11 +32,12 @@ class Channeled implements ChanneledInterface
    */
   private $whenDrained = null;
   private $input = [];
-  private $open = true;
-  private $state = 'libuv';
+
+  protected $open = true;
+  protected $state = 'libuv';
 
   /**
-   * future `parent` Future handle
+   * `Parent's` Future `instance` handle
    *
    * @var Object|Future
    */
@@ -106,14 +106,28 @@ class Channeled implements ChanneledInterface
     }
   }
 
+  public static function throwExistence(string $errorMessage): void
+  {
+    throw new \Error($errorMessage);
+  }
+
+  public static function throwClosed(string $errorMessage): void
+  {
+    throw new \Error($errorMessage);
+  }
+
+  public static function throwIllegalValue(string $errorMessage): void
+  {
+    throw new \InvalidArgumentException($errorMessage);
+  }
+
   public static function make(string $name, int $capacity = -1): ChanneledInterface
   {
     if (self::isChannel($name)) {
       if (self::$channels[$name]->getFuture() === null && !self::$channels[$name]->isClose())
         return self::$channels[$name];
 
-      throw new Error(\sprintf('channel named %s already exists', $name));
-      //throw new Existence(\sprintf('channel named %s already exists', $name));
+      self::throwExistence(\sprintf('channel named %s already exists', $name));
     }
 
     return new self($capacity, $name, false);
@@ -129,8 +143,7 @@ class Channeled implements ChanneledInterface
     if ($___channeled___ === 'parallel')
       return new self(-1, $name, false);
 
-    throw new Error(\sprintf('channel named %s not found', $name));
-    //throw new Existence(\sprintf('channel named %s not found', $name));
+    self::throwExistence(\sprintf('channel named %s not found', $name));
   }
 
   /**
@@ -173,8 +186,7 @@ class Channeled implements ChanneledInterface
   public function close(): void
   {
     if ($this->isClosed())
-      throw new Error(\sprintf('channel(%s) already closed', $this->name));
-    //throw new Closed(\sprintf('channel(%s) closed', $this->name));
+      $this->throwClosed(\sprintf('channel(%s) already closed', $this->name));
 
     $this->open = false;
   }
@@ -206,8 +218,7 @@ class Channeled implements ChanneledInterface
   public function send($value): void
   {
     if ($this->isClosed())
-      throw new Error(\sprintf('channel(%s) closed', $this->name));
-    //throw new Closed(\sprintf('channel(%s) closed', $this->name));
+      $this->throwClosed(\sprintf('channel(%s) closed', $this->name));
 
     $messaging = 'message';
     if (null !== $value && $this->state !== 'process') {
@@ -269,8 +280,7 @@ class Channeled implements ChanneledInterface
   public function recv()
   {
     if ($this->isClosed())
-      throw new Error(\sprintf('channel(%s) closed', $this->name));
-    //throw new Closed(\sprintf('channel(%s) closed', $this->name));
+      $this->throwClosed(\sprintf('channel(%s) closed', $this->name));
 
     if ($this->process instanceof \UVProcess) {
       $future = $this->channel;
@@ -460,8 +470,7 @@ class Channeled implements ChanneledInterface
         return new \IteratorIterator($input);
       }
 
-      throw new \InvalidArgumentException(\sprintf('%s only accepts strings, Traversable objects or stream resources.', $caller));
-      //throw new IllegalValue('value is illegal.');
+      self::throwIllegalValue(\sprintf('%s only accepts strings, Traversable objects or stream resources.', $caller));
     }
 
     return $input;
