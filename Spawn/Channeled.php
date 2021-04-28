@@ -6,7 +6,6 @@ namespace Async\Spawn;
 
 use Async\Spawn\Future;
 use Async\Spawn\Process;
-use Async\Spawn\ChanneledObject;
 use Async\Spawn\ChanneledInterface;
 
 /**
@@ -221,24 +220,6 @@ class Channeled implements ChanneledInterface
       $this->throwClosed(\sprintf('channel(%s) closed', $this->name));
 
     $messaging = 'message';
-    if (null !== $value && $this->state !== 'process') {
-      if ($value instanceof \Closure) {
-        $value = (new ChanneledObject)->add(0, $value, true);
-        $messaging = 'closures';
-      } elseif (\is_array($value)) {
-        $ChanneledObject = new ChanneledObject;
-        foreach ($value as $key => $message) {
-          if ($message instanceof \Closure) {
-            $messaging = 'closures';
-            $ChanneledObject->add($key, $message, true);
-          } else {
-            $ChanneledObject->add($key, $message);
-          }
-        }
-
-        $value = $ChanneledObject;
-      }
-    }
     if (null !== $value && $this->process instanceof \UVProcess) {
       $channelInput = $this->channel->getStdio()[0];
       $future = $this->channel;
@@ -273,7 +254,7 @@ class Channeled implements ChanneledInterface
 
       \fwrite($this->futureOutput, \serializer([$value, $messaging]));
       \fflush($this->futureOutput);
-      \usleep(5);
+      \usleep(7);
     }
   }
 
@@ -326,9 +307,6 @@ class Channeled implements ChanneledInterface
     $message = \deserializer($input);
     if ($this->isMessenger($message)) {
       $message = $message[0];
-      if ($message instanceof ChanneledObject) {
-        $message = $message();
-      }
     }
 
     return $message;

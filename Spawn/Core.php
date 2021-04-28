@@ -6,6 +6,7 @@ use Async\Spawn\Channeled;
 use Async\Spawn\ChanneledInterface;
 use Async\Spawn\Spawn;
 use Async\Spawn\FutureInterface;
+use function Opis\Closure\{serialize as serializing, unserialize as deserializing};
 
 if (!\defined('DS'))
   \define('DS', \DIRECTORY_SEPARATOR);
@@ -386,11 +387,11 @@ if (!\function_exists('spawn')) {
    *
    * @param SerializableClosure|string $task
    *
-   * @return callable
+   * @return callable|object
    *
    * @codeCoverageIgnore
    */
-  function spawn_decode(string $task): callable
+  function spawn_decode(string $task)
   {
     return Spawn::decodeTask($task);
   }
@@ -472,16 +473,16 @@ if (!\function_exists('spawn')) {
 
   /**
    * Create a encoded base64 valid string from a **serializable** data value.
-   *
    * @param mixed $input
    *
+   * @see https://opis.io/closure/3.x/serialize.html#serialize-unserialize-arbitrary-objects
    * @return string
    *
    * @codeCoverageIgnore
    */
   function serializer($input)
   {
-    return \base64_encode(@\serialize($input));
+    return \base64_encode(@serializing($input));
   }
 
   /**
@@ -489,11 +490,12 @@ if (!\function_exists('spawn')) {
    *
    * @param string $input
    *
+   * @see https://opis.io/closure/3.x/serialize.html#serialize-unserialize-arbitrary-objects
    * @return mixed
    */
   function deserializer($input)
   {
-    return @\unserialize(\base64_decode($input));
+    return @deserializing(\base64_decode($input));
   }
 
   /**

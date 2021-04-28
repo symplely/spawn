@@ -13,7 +13,6 @@ use Throwable;
 use Async\Spawn\Process;
 use Async\Spawn\SpawnError;
 use Async\Spawn\SerializableException;
-use Async\Spawn\ChanneledObject;
 use Async\Spawn\FutureInterface;
 
 /**
@@ -395,18 +394,15 @@ class Future implements FutureInterface
 
   public function channelTick()
   {
-    if (!Spawn::isIntegration()) {
+    if (!Spawn::isIntegration() || !\is_callable(self::$channelLoop)) {
       if ($this->channelState === Future::STATE[0])
         \uv_run(self::$uv, ($this->uvCounter ? \UV::RUN_ONCE : \UV::RUN_NOWAIT));
       else
-        \uv_run(self::$uv, \UV::RUN_DEFAULT);
+        \uv_run(self::$uv);
     } else {
       // @codeCoverageIgnoreStart
       $loop = self::$channelLoop;
-      if (\is_callable($loop))
-        $loop();
-      else
-        \uv_run(self::$uv);
+      $loop();
       // @codeCoverageIgnoreEnd
     }
   }
@@ -513,10 +509,6 @@ class Future implements FutureInterface
     $message = $this->decoded($input);
     if (Channeled::isMessenger($message)) {
       $data = $message[0];
-      if ($data instanceof ChanneledObject) {
-        $data = $data();
-      }
-
       if (!\is_null($data)) {
         $this->messages->enqueue($data);
         return true;

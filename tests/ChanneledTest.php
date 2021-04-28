@@ -3,9 +3,24 @@
 namespace Async\Tests;
 
 use Async\Spawn\Channeled as Channel;
-use Async\Spawn\ChanneledInterface;
-use DateTime;
 use PHPUnit\Framework\TestCase;
+
+class Foo
+{
+  private $int = 1;
+
+  private $closure;
+
+  public function __construct(\Closure $closure)
+  {
+    $this->closure = $closure;
+  }
+
+  public function call()
+  {
+    return ($this->closure)();
+  }
+}
 
 class ChanneledTest extends TestCase
 {
@@ -187,7 +202,6 @@ class ChanneledTest extends TestCase
     });
   }
 
-  /*
   public function testChannelClosureArrays()
   {
     $channel = Channel::make("channel");
@@ -203,5 +217,65 @@ class ChanneledTest extends TestCase
       echo "OK";
     }]);
   }
-*/
+  public function testChannelInsideObjectProperties()
+  {
+    $channel = Channel::make("channel");
+
+    parallel(function ($channel) {
+      $data = $channel->recv();
+
+      ($data->closure)();
+    }, $channel);
+
+    $std = new \stdClass;
+    $std->closure = function () {
+      echo "OK";
+    };
+
+    $this->expectOutputString('OK');
+    $channel->send($std);
+  }
+
+  public function testChannelDelclaredInsideObjectProperties()
+  {
+    $channel = Channel::make("channel");
+
+    parallel(function ($channel) {
+      $foo = $channel->recv();
+
+      $foo->call();
+    }, $channel);
+
+    $foo = new Foo(function () {
+      echo "OK";
+    });
+
+    $this->expectOutputString('OK');
+    $channel->send($foo);
+  }
+  /*
+  public function testChannelDrains()
+  {
+    $chan = Channel::make("hi", 10001);
+    $limit = 10;
+
+    for ($i = 0; $i <= $limit; ++$i) {
+      $chan->send($i);
+    }
+
+    $chan->close();
+
+    while (($value = $chan->recv()) > -1) {
+      var_dump($value);
+
+      if ($value == $limit)
+        break;
+    }
+
+    try {
+      $chan->recv();
+    } catch (\Error $ex) {
+      var_dump($ex->getMessage());
+    }
+  }*/
 }
