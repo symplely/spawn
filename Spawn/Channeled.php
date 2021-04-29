@@ -253,8 +253,6 @@ class Channeled implements ChanneledInterface
       }
 
       \fwrite($this->futureOutput, \serializer([$value, $messaging]));
-      //\fflush($this->futureOutput);
-      \usleep(10);
     }
   }
 
