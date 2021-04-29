@@ -336,6 +336,7 @@ if (!\function_exists('spawn')) {
       }
     }
 
+    // @codeCoverageIgnoreStart
     $executable = function () use ($task, $argv, $___parallel___) {
       if (\is_array($___parallel___))
         \set_globals($___parallel___);
@@ -344,6 +345,7 @@ if (!\function_exists('spawn')) {
       $___channeled___ = 'parallel';
       return $task(...$argv);
     };
+    // @codeCoverageIgnoreEnd
 
     return Spawn::create($executable, 0, $channel, false)->displayOn();
   }
@@ -440,6 +442,8 @@ if (!\function_exists('spawn')) {
   /**
    *  Returns an array of all `user defined` global variables, without `super globals`.
    * @return array
+   *
+   * @codeCoverageIgnore
    */
   function parallel_globals(): array
   {
@@ -462,8 +466,9 @@ if (!\function_exists('spawn')) {
    * Check if a string is base64 valid, or has `encoded` mixed data.
    *
    * @param string $input
-   *
    * @return bool|null if `null` **$input** is mixed with `encode` data.
+   *
+   * @codeCoverageIgnore
    */
   function is_base64($input): ?bool
   {
@@ -521,8 +526,9 @@ if (!\function_exists('spawn')) {
    * **serialized** decoded data representation.
    *
    * @param string $input
-   *
    * @return mixed
+   *
+   * @codeCoverageIgnore
    */
   function deserialize($input)
   {

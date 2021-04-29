@@ -115,6 +115,9 @@ class Channeled implements ChanneledInterface
     throw new \Error($errorMessage);
   }
 
+  /**
+   * @codeCoverageIgnore
+   */
   public static function throwIllegalValue(string $errorMessage): void
   {
     throw new \InvalidArgumentException($errorMessage);
