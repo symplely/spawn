@@ -180,7 +180,7 @@ class Future implements FutureInterface
     int $timeout = 0,
     bool $isYield = false,
     $channel = null,
-    $channelLoop
+    $channelLoop = null
   ): FutureInterface {
     if (!$isInitialized) {
       [$autoload, $containerScript, $isInitialized] = Spawn::init();
