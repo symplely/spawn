@@ -51,8 +51,8 @@ class Channeled implements ChanneledInterface
     $this->open = false;
     $this->channel = null;
     $this->process = null;
-    //unset($this->buffered);
-    //$this->buffered = null;
+    unset($this->buffered);
+    $this->buffered = null;
   }
 
   public function __construct(
@@ -70,7 +70,7 @@ class Channeled implements ChanneledInterface
 
     $this->type = empty($capacity) ? 'unbuffered' : 'buffered';
     $this->capacity = $capacity;
-    //$this->buffered = new \SplQueue;
+    $this->buffered = new \SplQueue;
 
     if ($anonymous) {
       self::$anonymous++;
@@ -211,54 +211,72 @@ class Channeled implements ChanneledInterface
 
   public static function isMessenger($message): bool
   {
-    return \is_array($message) && isset($message[1]) && ($message[1] === 'message' || $message[1] === 'closures');
+    return \is_array($message) && isset($message[1])
+      && ($message[1] === '___message' || $message[1] === 'closures');
   }
 
   public function send($value): void
   {
-    if ($this->isClosed())
-      $this->throwClosed(\sprintf('channel(%s) closed', $this->name));
+    global $___channeled___;
 
-    $messaging = 'message';
-    if (null !== $value && $this->process instanceof \UVProcess) {
-      $channelInput = $this->channel->getStdio()[0];
-      $future = $this->channel;
-      if (!$future->isStarted()) {
-        $future->start();
-        if ($future->getChannelState() === Future::STATE[3])
-          $future->channelState(1);
-      }
+    if (
+      !isset($___channeled___) && null !== $value && $this->process === null
+      && !\is_resource($value) && ($this->capacity > $this->buffered->count()) && $this->type === 'buffered'
+    ) {
+      $this->buffered->enqueue($value);
+    } else {
+      if ($this->isClosed())
+        $this->throwClosed(\sprintf('channel(%s) closed', $this->name));
 
-      $checkState = $future->isChanneling();
-      if ($checkState)
-        $future->channelAdd();
-
-      \uv_write(
-        $channelInput,
-        \serializer([$value, $messaging]) . \EOL,
-        function () use ($future, $checkState) {
-          if ($checkState)
-            $future->channelRemove();
+      $messaging = '___message';
+      if (null !== $value && $this->process instanceof \UVProcess) {
+        $channelInput = $this->channel->getStdio()[0];
+        $future = $this->channel;
+        if (!$future->isStarted()) {
+          $future->start();
+          if ($future->getChannelState() === Future::STATE[3])
+            $future->channelState(1);
         }
-      );
 
-      if ($checkState)
-        $future->channelTick();
-    } elseif (null !== $value && ($this->state === 'process' || \is_resource($value))) {
-      $this->input[] = self::validateInput(__METHOD__, $value);
-    } elseif (null !== $value) {
-      if (!\is_resource($this->futureOutput)) {
-        $this->futureOutput = \STDOUT;
-        \stream_set_write_buffer($this->futureOutput, 0);
+        $checkState = $future->isChanneling();
+        if ($checkState)
+          $future->channelAdd();
+
+        \uv_write(
+          $channelInput,
+          \serializer([$value, $messaging]) . \EOL,
+          function () use ($future, $checkState) {
+            if ($checkState)
+              $future->channelRemove();
+          }
+        );
+
+        if ($checkState)
+          $future->channelTick();
+      } elseif (null !== $value && ($this->state === 'process' || \is_resource($value))) {
+        $this->input[] = self::validateInput(__METHOD__, $value);
+      } elseif (null !== $value) {
+        if (!\is_resource($this->futureOutput)) {
+          $this->futureOutput = \STDOUT;
+          \stream_set_write_buffer($this->futureOutput, 0);
+        }
+
+        \fwrite($this->futureOutput, \serializer([$value, $messaging]));
+        \usleep(1500);
       }
-
-      \fwrite($this->futureOutput, \serializer([$value, $messaging]));
-      \usleep(1100);
     }
   }
 
   public function recv()
   {
+    global $___channeled___;
+
+    if (
+      !isset($___channeled___) && $this->type === 'buffered'
+      && $this->process === null && !$this->buffered->isEmpty()
+    )
+      return $this->buffered->dequeue();
+
     if ($this->isClosed())
       $this->throwClosed(\sprintf('channel(%s) closed', $this->name));
 

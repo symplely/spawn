@@ -300,6 +300,7 @@ if (!\function_exists('spawn')) {
    *
    * @return FutureInterface
    * @throws LogicException In case the `Future` process is already running.
+   * @see https://www.php.net/manual/en/parallel.run.php
    */
   function spawn(
     $executable,
@@ -310,6 +311,17 @@ if (!\function_exists('spawn')) {
     return Spawn::create($executable, $timeout, $channel, $isYield);
   }
 
+  /**
+   * Create an Future `sub/child` process **task**.
+   * This function exists to give same behavior as **parallel\run** of `ext-parallel` extension,
+   * but without any of the it limitations.
+   *
+   * @param callable $task
+   * @param Channeled|mixed|null ...$argv - if a `Channel` instance is passed, it wil be used to set `Future` **IPC/CSP** handler.
+   *
+   * @return FutureInterface
+   * @see https://www.php.net/manual/en/parallel.run.php
+   */
   function parallel($task, ...$argv): FutureInterface
   {
     global $___parallel___;
@@ -388,6 +400,7 @@ if (!\function_exists('spawn')) {
    * @param SerializableClosure|string $task
    *
    * @return callable|object
+   * @see https://opis.io/closure/3.x/context.html
    *
    * @codeCoverageIgnore
    */
@@ -402,6 +415,7 @@ if (!\function_exists('spawn')) {
    * @param callable $task
    *
    * @return string
+   * @see https://opis.io/closure/3.x/context.html
    *
    * @codeCoverageIgnore
    */
@@ -423,6 +437,10 @@ if (!\function_exists('spawn')) {
     return $global;
   }
 
+  /**
+   *  Returns an array of all `user defined` global variables, without `super globals`.
+   * @return array
+   */
   function parallel_globals(): array
   {
     return \get_globals(get_defined_vars());

@@ -56,7 +56,7 @@ class ChanneledTest extends TestCase
 
     \spawn_run($future);
 
-    //$this->assertSame('pingpangpong', $future->getOutput());
+    $this->assertSame('pingpangpong', $future->getOutput());
     $this->assertSame('pong', $future->getLast());
     $this->assertSame(9, \spawn_result($future));
   }
@@ -253,7 +253,7 @@ class ChanneledTest extends TestCase
     $this->expectOutputString('OK');
     $channel->send($foo);
   }
-  /*
+
   public function testChannelDrains()
   {
     $chan = Channel::make("hi", 10001);
@@ -265,17 +265,18 @@ class ChanneledTest extends TestCase
 
     $chan->close();
 
+    $counter = 0;
     while (($value = $chan->recv()) > -1) {
-      var_dump($value);
+      $this->assertEquals($value, $counter);
+      $counter++;
 
-      if ($value == $limit)
+      if ($value == $limit) {
         break;
+      }
     }
 
-    try {
-      $chan->recv();
-    } catch (\Error $ex) {
-      var_dump($ex->getMessage());
-    }
-  }*/
+    $this->expectException(\Error::class);
+    $this->expectExceptionMessageMatches('/[channel(hi) closed]/');
+    $chan->recv();
+  }
 }
