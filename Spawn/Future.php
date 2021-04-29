@@ -89,7 +89,7 @@ class Future implements FutureInterface
     $process,
     int $id,
     int $timeout = 60,
-    array $stdio,
+    array $stdio = [],
     \UVTimer $timer = null,
     \UVLoop $loop = null,
     bool $isYield = false,
