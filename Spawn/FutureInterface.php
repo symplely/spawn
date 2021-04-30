@@ -211,6 +211,13 @@ interface FutureInterface
   public function isSuccessful(): bool;
 
   /**
+   * Checks if the process has started.
+   *
+   * @return bool
+   */
+  public function isStarted(): bool;
+
+  /**
    * Set process to display output of child process.
    *
    * @return FutureInterface

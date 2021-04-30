@@ -312,9 +312,9 @@ if (!\function_exists('spawn')) {
   }
 
   /**
-   * Create an Future `sub/child` process **task**.
+   * Create an Future `sub/child` **task**.
    * This function exists to give same behavior as **parallel\run** of `ext-parallel` extension,
-   * but without any of the it limitations.
+   * but without any of the it's limitations. All child output is displayed.
    *
    * @param callable $task
    * @param Channeled|mixed|null ...$argv - if a `Channel` instance is passed, it wil be used to set `Future` **IPC/CSP** handler.
@@ -348,6 +348,53 @@ if (!\function_exists('spawn')) {
     // @codeCoverageIgnoreEnd
 
     return Spawn::create($executable, 0, $channel, false)->displayOn();
+  }
+
+  /**
+   * Create an `yield`able Future `sub/child` **task**, that can include an additional **file**.
+   * This function exists to give same behavior as **parallel\runtime** of `ext-parallel` extension,
+   * but without any of the it's limitations. All child output is displayed.
+   * - This feature is for `Coroutine` package or any third party package using `yield` for execution.
+   *
+   * @param closure $task
+   * @param string $include additional file to execute
+   * @param Channeled|mixed|null ...$args - if a `Channel` instance is passed, it wil be used to set `Future` **IPC/CSP** handler
+   *
+   * @return FutureInterface
+   * @see https://www.php.net/manual/en/parallel.run.php
+   */
+  function paralleling(?\Closure $task = null, ?string $include = null, ...$args): FutureInterface
+  {
+    global $___parallel___;
+
+    $channel = null;
+    foreach ($args as $isChannel) {
+      if ($isChannel instanceof ChanneledInterface) {
+        $channel = $isChannel;
+        break;
+      } elseif (\is_string($isChannel) && Channeled::isChannel($isChannel)) {
+        $channel = Channeled::open($isChannel);
+        break;
+      }
+    }
+
+    // @codeCoverageIgnoreStart
+    $executable = function () use ($task, $args, $include, $___parallel___) {
+      if (!empty($include) && \is_string($include))
+        require $include;
+
+      if (\is_array($___parallel___))
+        \set_globals($___parallel___);
+
+
+      global $___channeled___;
+      $___channeled___ = 'parallel';
+
+      return $task(...$args);
+    };
+    // @codeCoverageIgnoreEnd
+
+    return Spawn::create($executable, 0, $channel, true)->displayOn();
   }
 
   /**
