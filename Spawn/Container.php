@@ -34,7 +34,7 @@ try {
   $output = $task(\spawn_channel());
 
   \fflush(\STDOUT);
-  \usleep((\IS_WINDOWS ? 1500 : 100));
+  \usleep(1500);
   \fwrite(\STDOUT, \serializer($output));
   exit(0);
 } catch (\Throwable $exception) {
