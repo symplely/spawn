@@ -338,11 +338,7 @@ if (!\function_exists('spawn')) {
 
     // @codeCoverageIgnoreStart
     $executable = function () use ($task, $argv, $___parallel___) {
-      if (\is_array($___parallel___))
-        \set_globals($___parallel___);
-
-      global $___channeled___;
-      $___channeled___ = 'parallel';
+      \parallel_setup($___parallel___);
       return $task(...$argv);
     };
     // @codeCoverageIgnoreEnd
@@ -383,18 +379,54 @@ if (!\function_exists('spawn')) {
       if (!empty($include) && \is_string($include))
         require $include;
 
-      if (\is_array($___parallel___))
-        \set_globals($___parallel___);
-
-
-      global $___channeled___;
-      $___channeled___ = 'parallel';
-
+      \parallel_setup($___parallel___);
       return $task(...$args);
     };
     // @codeCoverageIgnoreEnd
 
     return Spawn::create($executable, 0, $channel, true)->displayOn();
+  }
+
+  /**
+   *  Returns an array of all `user defined` global variables, without `super globals`.
+   *
+   * @param array $vars only **get_defined_vars()** should be passed in.
+   * @return array
+   */
+  function get_globals(array $vars): array
+  {
+    $global = @\array_diff($vars, array(array()));
+    unset($global['argc']);
+    return $global;
+  }
+
+  /**
+   *  Returns an array of all `user defined` global variables, without `super globals`.
+   * @return array
+   *
+   * @codeCoverageIgnore
+   */
+  function parallel_globals(): array
+  {
+    return \get_globals(get_defined_vars());
+  }
+
+  /**
+   * Setup `user defined` global `key => value` pair to be transferred to `Future` **subprocess**.
+   * - Also an indicator for a `Channel` that it been started by `subprocess` Future.
+   *
+   * @param array|null $keyValue
+   * @return void
+   */
+  function parallel_setup(?array $keyValue = null): void
+  {
+    global $___channeled___;
+
+    if (\is_array($keyValue))
+      foreach ($keyValue as $key => $value)
+        $GLOBALS[$key] = $value;
+
+    $___channeled___ = 'parallel';
   }
 
   /**
@@ -410,7 +442,7 @@ if (!\function_exists('spawn')) {
   }
 
   /**
-   * Start the process and wait to terminate, and return any results.
+   * Start the `Future` process and wait to terminate, and return any results.
    */
   function spawn_run(FutureInterface $future, bool $displayOutput = false)
   {
@@ -418,7 +450,7 @@ if (!\function_exists('spawn')) {
   }
 
   /**
-   * return the full output of the process.
+   * return the full output of the `Future` process.
    */
   function spawn_output(FutureInterface $future)
   {
@@ -426,7 +458,7 @@ if (!\function_exists('spawn')) {
   }
 
   /**
-   * return the result of the process.
+   * return the result of the `Future` process.
    */
   function spawn_result(FutureInterface $future)
   {
@@ -471,42 +503,6 @@ if (!\function_exists('spawn')) {
   function spawn_encode($task): string
   {
     return Spawn::encodeTask($task);
-  }
-
-  /**
-   *  Returns an array of all `user defined` global variables, without `super globals`.
-   *
-   * @param array $vars only **get_defined_vars()** should be passed in.
-   * @return array
-   */
-  function get_globals(array $vars): array
-  {
-    $global = @\array_diff($vars, array(array()));
-    unset($global['argc']);
-    return $global;
-  }
-
-  /**
-   *  Returns an array of all `user defined` global variables, without `super globals`.
-   * @return array
-   *
-   * @codeCoverageIgnore
-   */
-  function parallel_globals(): array
-  {
-    return \get_globals(get_defined_vars());
-  }
-
-  /**
-   *  Set `user defined` global `key => value` pair to be transferred to a **subprocess**.
-   *
-   * @param array $spawn_globals from `get_globals(get_defined_vars());`.
-   * @return void
-   */
-  function set_globals(array $spawn_globals): void
-  {
-    foreach ($spawn_globals as $key => $value)
-      $GLOBALS[$key] = $value;
   }
 
   /**
@@ -580,39 +576,6 @@ if (!\function_exists('spawn')) {
   function deserialize($input)
   {
     return \is_base64($input) ? \deserializer($input) : $input;
-  }
-
-  /**
-   * For use when/before calling the actual `return` keyword, will flush, then sleep for `microsecond`,
-   * and return the to be encoded `data/result`.
-   *
-   * - For use with subprocess `ipc` interaction.
-   *
-   * - This function is intended to overcome an issue when **`return`ing** the `encode` data/results
-   * from an child subprocess operation.
-   *
-   * - The problem is the fact the last output is being mixed in with the `return` encode
-   * data/results.
-   *
-   * - The parent is given no time to read data stream before the `return`, there was no
-   *  delay or processing preformed between child last output and the `return` statement.
-   *
-   * @param mixed $with to return to parent process.
-   * @param int $microsecond - `50` when using `uv_spawn`, otherwise `1500` or so higher with `proc_open`.
-   *
-   * @return void|mixed
-   *
-   * @codeCoverageIgnore
-   */
-  function flush_value($with = null, int $microsecond = 50)
-  {
-    \fflush(\STDOUT);
-    \usleep($microsecond);
-    \fflush(\STDOUT);
-    \usleep($microsecond);
-
-    if (!\is_null($with))
-      return $with;
   }
 
   /**

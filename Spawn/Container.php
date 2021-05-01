@@ -34,10 +34,8 @@ try {
   $output = $task(\spawn_channel());
 
   \fflush(\STDOUT);
-  \usleep(25);
+  \usleep((\IS_WINDOWS ? 1500 : 100));
   \fwrite(\STDOUT, \serializer($output));
-  \usleep(25);
-  \fflush(\STDOUT);
   exit(0);
 } catch (\Throwable $exception) {
   $output = new SerializableException($exception);

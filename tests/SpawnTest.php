@@ -144,7 +144,7 @@ class SpawnTest extends TestCase
         usleep(1000);
         echo 'child';
         usleep(1000);
-        return flush_value(3);
+        return 3;
       }
     );
     $p->run();
@@ -334,7 +334,7 @@ class SpawnTest extends TestCase
   {
     global $test;
     $test = 100;
-    set_globals(['test' => 2, 'other' => 'foo']);
+    parallel_setup(['test' => 2, 'other' => 'foo']);
     $this->assertEquals($GLOBALS['test'], 2);
     $test = 4;
     $this->assertEquals($GLOBALS['test'], 4);

@@ -16,42 +16,42 @@ interface FutureInterface
   const INVALID = ['Tjs='];
 
   /**
-   * Gets PHP's process ID.
+   * Gets PHP's `Future` process ID.
    *
    * @return int
    */
   public function getId(): int;
 
   /**
-   * Start the process.
+   * Start the `Future` process.
    *
    * @return FutureInterface
    */
   public function start(): FutureInterface;
 
   /**
-   * Restart the process.
+   * Restart the `Future` process.
    *
    * @return FutureInterface
    */
   public function restart(): FutureInterface;
 
   /**
-   * Start the process and wait to terminate.
+   * Start the `Future` process and wait to terminate.
    *
    * @param bool $useYield - should we use generator callback functions
    */
   public function run(bool $useYield = false);
 
   /**
-   * Return an generator that can start the process and wait to terminate.
+   * Return an generator that can start the `Future` process and wait to terminate.
    *
    * @return \Generator
    */
   public function yielding();
 
   /**
-   * Close out the process, and reset any related data.
+   * Close out the `Future` process, and reset any related data.
    */
   public function close();
 
@@ -64,7 +64,7 @@ interface FutureInterface
   public function wait($waitTimer = 1000, bool $useYield = false);
 
   /**
-   * Add handlers to be called when the process is successful, erred or progressing in real time.
+   * Add handlers to be called when the `Future` process is successful, erred or progressing in real time.
    *
    * @param callable $doneCallback
    * @param callable $failCallback
@@ -79,7 +79,7 @@ interface FutureInterface
   ): FutureInterface;
 
   /**
-   * Add handlers to be called when the process is terminated with a signal.
+   * Add handlers to be called when the `Future` process is terminated with a signal.
    * - This feature is only available when using `libuv`.
    *
    * @param int $signal
@@ -90,13 +90,13 @@ interface FutureInterface
   public function signal(int $signal, callable $signalCallback): FutureInterface;
 
   /**
-   * Add handlers to be called when the process progressing, it's producing output.
+   * Add handlers to be called when the `Future` process progressing, it's producing output.
    * This can be use as a IPC handler for real time interaction.
    *
    * The callback will receive **output type** either(`out` or `err`),
    * and **the output** in real-time.
    *
-   * Use: __Channeled__->`send()` to write to the standard input of the process.
+   * Use: __Channeled__->`send()` to write to the standard input of the `Future` process.
    *
    * @param callable $progressCallback
    *
@@ -105,7 +105,7 @@ interface FutureInterface
   public function progress(callable $progressCallback): FutureInterface;
 
   /**
-   * Add handlers to be called when the process has errors.
+   * Add handlers to be called when the `Future` process has errors.
    *
    * @param callable $callback
    *
@@ -114,7 +114,7 @@ interface FutureInterface
   public function catch(callable $callback): FutureInterface;
 
   /**
-   * Add handlers to be called when the process has timed out.
+   * Add handlers to be called when the `Future` process has timed out.
    *
    * @param callable $callback
    *
@@ -132,42 +132,42 @@ interface FutureInterface
   public function clean($output = null);
 
   /**
-   * Return and set the last/final output coming from the child process.
+   * Return and set the final result/value coming from the child `Future` process.
    *
    * @return mixed
    */
   public function getResult();
 
   /**
-   * Return the last output posted by the child process.
+   * Return the last output posted by the child `Future` process.
    *
    * @return mixed
    */
   public function getLast();
 
   /**
-   * Returns the current output of the process (STDOUT).
+   * Returns `All` output of the `Future` process (STDOUT).
    *
-   * @return string The process output
+   * @return string
    */
   public function getOutput();
 
   /**
-   * Returns the current error output of the process (STDERR).
+   * Returns `All` error output of the process (STDERR).
    *
-   * @return string The process error output
+   * @return string
    */
   public function getErrorOutput();
 
   /**
-   * Returns the Pid (process identifier), if applicable.
+   * Returns the Pid (`Future` process identifier), if applicable.
    *
-   * @return int|null The process id if running, null otherwise
+   * @return int|null
    */
   public function getPid(): ?int;
 
   /**
-   * Stops the running process, with signal.
+   * Stops the running `Future` process, with signal.
    *
    * @param int $signal The signal to send to the process, default is SIGKILL (9)
    *
@@ -176,49 +176,49 @@ interface FutureInterface
   public function stop(int $signal = \SIGKILL): FutureInterface;
 
   /**
-   * Check if the process has timeout (max. runtime).
+   * Check if the `Future` process has timeout (max. runtime).
    *
    * @return bool
    */
   public function isTimedOut(): bool;
 
   /**
-   * Checks if the process received a signal.
+   * Checks if the `Future` process received a signal.
    *
    * @return bool
    */
   public function isSignaled(): bool;
 
   /**
-   * Checks if the process is currently running.
+   * Checks if the `Future` process is currently running.
    *
-   * @return bool true if the process is currently running, false otherwise
+   * @return bool true if the `Future` process is currently running, false otherwise
    */
   public function isRunning(): bool;
 
   /**
-   * Checks if the process is terminated.
+   * Checks if the `Future` process is terminated.
    *
-   * @return bool true if process is terminated, false otherwise
+   * @return bool true if `Future` process is terminated, false otherwise
    */
   public function isTerminated(): bool;
 
   /**
-   * Checks if the process ended successfully.
+   * Checks if the `Future` process ended successfully.
    *
-   * @return bool true if the process ended successfully, false otherwise
+   * @return bool true if the `Future` process ended successfully, false otherwise
    */
   public function isSuccessful(): bool;
 
   /**
-   * Checks if the process has started.
+   * Checks if the `Future` process has started.
    *
    * @return bool
    */
   public function isStarted(): bool;
 
   /**
-   * Set process to display output of child process.
+   * Set `Future` process to display output of child process.
    *
    * @return FutureInterface
    */
@@ -226,14 +226,14 @@ interface FutureInterface
 
 
   /**
-   * Stop displaying output of child process.
+   * Stop displaying output of child `Future` process.
    *
    * @return FutureInterface
    */
   public function displayOff(): FutureInterface;
 
   /**
-   * The **PHP** process handler, Either `Process` or `UVProcess`.
+   * The **PHP** `Future` process handler, Either `Process` or `UVProcess`.
    *
    * @return Process|\UVProcess
    */
