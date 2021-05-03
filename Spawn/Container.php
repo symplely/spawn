@@ -34,7 +34,7 @@ try {
   $output = $task(\spawn_channel());
 
   \fflush(\STDOUT);
-  \usleep(1500);
+  \usleep(2000);
   \fwrite(\STDOUT, \serializer($output));
   exit(0);
 } catch (\Throwable $exception) {

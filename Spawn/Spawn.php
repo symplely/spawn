@@ -157,11 +157,10 @@ class Spawn
      * - This feature is for `Coroutine` package or any third party package.
      * @param bool $useUv - Turn **on/off** `uv_spawn` for child subprocess operations, will use **libuv** features,
      * if not **true** will use `proc_open` of **symfony/process**.
-     * @param callable|null $channelLoop - the Event Loop routine to use in integrationMode.
      *
      * @codeCoverageIgnore
      */
-    public static function setup($loop, bool $isYield = true, bool $integrationMode = true, bool $useUv = true, callable $channelLoop = null): void
+    public static function setup($loop, bool $isYield = true, bool $integrationMode = true, bool $useUv = true): void
     {
         if ($loop instanceof \UVLoop) {
             Future::uvLoop($loop);
@@ -170,8 +169,6 @@ class Spawn
         self::$integrationMode = $integrationMode;
         self::$isYield = $isYield;
         self::$useUv = $useUv;
-        if (!empty($channelLoop))
-            self::$channelLoop = $channelLoop;
     }
 
     /**

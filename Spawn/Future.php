@@ -83,8 +83,6 @@ class Future implements FutureInterface
   /** @var callable */
   protected static $channelLoop = null;
 
-  public static $channelConnected = false;
-
   private function __construct(
     $process,
     int $id,
@@ -94,8 +92,7 @@ class Future implements FutureInterface
     \UVLoop $loop = null,
     bool $isYield = false,
     $task = null,
-    $channel = null,
-    callable $channelLoop = null
+    $channel = null
   ) {
     $this->timeout = $timeout;
     $this->process = $process;
@@ -109,11 +106,17 @@ class Future implements FutureInterface
     $this->messages = new \SplQueue();
     self::$uv = $loop;
     self::$future[$id] = $this;
-    self::$channelConnected = true;
-    if (!empty($channelLoop))
-      self::$channelLoop = $channelLoop;
     if ($channel instanceof Channeled)
       $channel->setFuture($this);
+
+    if (self::$channelLoop === null) {
+      self::$channelLoop = function ($wait_count) {
+        if ($this->isChanneling())
+          \uv_run(self::$uv, ($wait_count ? \UV::RUN_ONCE : \UV::RUN_NOWAIT));
+        else
+          \uv_run(self::$uv);
+      };
+    }
   }
 
   /**
@@ -162,12 +165,11 @@ class Future implements FutureInterface
     $this->signal = null;
     unset($this->messages);
     $this->messages = null;
-    self::$channelConnected = false;
   }
 
   public static function create(Process $process, int $id, int $timeout = 0, bool $isYield = false, $channel = null): FutureInterface
   {
-    return new self($process, $id, $timeout, [null, null, null], null, null, $isYield, null, $channel, self::$channelLoop);
+    return new self($process, $id, $timeout, [null, null, null], null, null, $isYield, null, $channel);
   }
 
   public static function add(
@@ -179,8 +181,7 @@ class Future implements FutureInterface
     bool $isInitialized = false,
     int $timeout = 0,
     bool $isYield = false,
-    $channel = null,
-    $channelLoop = null
+    $channel = null
   ): FutureInterface {
     if (!$isInitialized) {
       [$autoload, $containerScript, $isInitialized] = Spawn::init();
@@ -276,7 +277,7 @@ class Future implements FutureInterface
       });
     }
 
-    return new self($process, (int) $getId, $timeout, [$in, $out, $err], $timer, $uvLoop, $isYield, $task, $channel, $channelLoop);
+    return new self($process, (int) $getId, $timeout, [$in, $out, $err], $timer, $uvLoop, $isYield, $task, $channel);
   }
 
   public function start(): FutureInterface
@@ -319,6 +320,7 @@ class Future implements FutureInterface
 
   public function restart(): FutureInterface
   {
+    $this->hasStarted = false;
     if ($this->process instanceof Process) {
       if ($this->isRunning())
         $this->stop();
@@ -326,7 +328,7 @@ class Future implements FutureInterface
       $process = clone $this->process;
       $future = $this->create($process, $this->id, $this->timeout);
     } else {
-      $future = self::add($this->task, $this->id, \PHP_BINARY, '', '', false, (int) $this->timeout, $this->isYield, null, self::$channelLoop);
+      $future = self::add($this->task, $this->id, \PHP_BINARY, '', '', false, (int) $this->timeout, $this->isYield, null);
       if ($this->isRunning())
         $this->stop();
     }
@@ -336,7 +338,8 @@ class Future implements FutureInterface
 
   public function run(bool $useYield = false)
   {
-    $this->start();
+    if (!$this->isStarted())
+      $this->start();
 
     if ($useYield)
       return $this->wait(1000, true);
@@ -377,7 +380,12 @@ class Future implements FutureInterface
     return $this->channelState;
   }
 
-  public function isChanneling()
+  public function isChannelYield(): bool
+  {
+    return $this->isYield;
+  }
+
+  public function isChanneling(): bool
   {
     return ($this->channelState !== Future::STATE[3]) && ($this->channelState !== Future::STATE[2]);
   }
@@ -392,19 +400,28 @@ class Future implements FutureInterface
     $this->uvCounter--;
   }
 
-  public function channelTick()
+  public function getChannelCount(): int
   {
-    if (!Spawn::isIntegration() || !\is_callable(self::$channelLoop)) {
-      if ($this->channelState === Future::STATE[0])
-        \uv_run(self::$uv, ($this->uvCounter ? \UV::RUN_ONCE : \UV::RUN_NOWAIT));
-      else
-        \uv_run(self::$uv);
-    } else {
-      // @codeCoverageIgnoreStart
-      $loop = self::$channelLoop;
-      $loop();
-      // @codeCoverageIgnoreEnd
-    }
+    return $this->uvCounter;
+  }
+
+  public function setChannelTick(callable $loop)
+  {
+    self::$channelLoop = $loop;
+  }
+
+  public function channelTick($wait_count)
+  {
+    $loop = self::$channelLoop;
+    if ($this->isYield)
+      return $this->channelTickYield($loop, $wait_count)->next();
+
+    $loop($wait_count);
+  }
+
+  protected function channelTickYield(callable $loop, $wait_count)
+  {
+    yield $loop($wait_count);
   }
 
   public function wait($waitTimer = 1000, bool $useYield = false)

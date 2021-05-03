@@ -208,11 +208,10 @@ $future = Spawn::create(function () {
  * - This feature is for `Coroutine` package or any third party package.
  * @param bool $useUv - Turn **on/off** `uv_spawn` for child subprocess operations, will use **libuv** features,
  * if not **true** will use `proc_open` of **symfony/process**.
- * @param callable|null $channelLoop - the Event Loop routine to use in integrationMode.
  *
  * @codeCoverageIgnore
  */
-spawn_setup($loop, $isYield, $integrationMode, $useUv, $channelLoop);
+spawn_setup($loop, $isYield, $integrationMode, $useUv);
 
 // For checking and acting on each subprocess status use:
 

@@ -279,4 +279,48 @@ class ChanneledTest extends TestCase
     $this->expectExceptionMessageMatches('/[channel(hi) closed]/');
     $chan->recv();
   }
+
+  public function testParallelingInclude()
+  {
+    $future = \paralleling(function () {
+      return foo();
+    }, \sprintf("%s/ChannelInclude.inc", __DIR__));
+
+    $this->expectOutputString('OK');
+    echo \paralleling_run($future);
+  }
+
+  public function testChannelRecvYield()
+  {
+    $channel = Channel::make("channel");
+
+    paralleling(function ($channel) {
+      $data = $channel->recv();
+      echo $data;
+    }, null, $channel);
+
+    $this->expectOutputString('OK');
+    $channel->send("OK");
+  }
+
+  public function testChannelSendYield()
+  {
+    $channel = Channel::make("io");
+
+    paralleling(function ($channel) {
+      $channel = Channel::open($channel);
+
+      for ($count = 0; $count <= 10; $count++) {
+        $channel->send($count);
+      }
+
+      $channel->send(false);
+    }, null, (string) $channel);
+
+    $counter = 0;
+    while (($value = $channel->recv()) !== false) {
+      $this->assertEquals($value, $counter);
+      $counter++;
+    }
+  }
 }

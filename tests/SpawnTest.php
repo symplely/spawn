@@ -349,14 +349,4 @@ class SpawnTest extends TestCase
     $this->assertIsArray($global);
     $this->assertEquals($global['test'], 4);
   }
-
-  public function testParallelingInclude()
-  {
-    $future = \paralleling(function () {
-      return foo();
-    }, sprintf("%s/ChannelInclude.inc", __DIR__));
-
-    $this->expectOutputString('OK');
-    echo $future->yielding()->current();
-  }
 }

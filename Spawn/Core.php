@@ -388,6 +388,20 @@ if (!\function_exists('spawn')) {
   }
 
   /**
+   * Start the `Future` process and wait to terminate, and return any results.
+   * - This feature is for standalone mode only.
+   * - This feature runs **libuv** *uv_run(`loop`)* in *`UV::RUN_DEFAULT`* mode.
+   *
+   * @param FutureInterface $future
+   * @return mixed
+   * @see https://www.php.net/manual/en/parallel.run.php
+   */
+  function paralleling_run(FutureInterface $future)
+  {
+    return $future->yielding()->next();
+  }
+
+  /**
    *  Returns an array of all `user defined` global variables, without `super globals`.
    *
    * @param array $vars only **get_defined_vars()** should be passed in.
@@ -443,6 +457,10 @@ if (!\function_exists('spawn')) {
 
   /**
    * Start the `Future` process and wait to terminate, and return any results.
+   *
+   * @param FutureInterface $future
+   * @param boolean $displayOutput
+   * @return mixed
    */
   function spawn_run(FutureInterface $future, bool $displayOutput = false)
   {
@@ -589,12 +607,11 @@ if (!\function_exists('spawn')) {
    * - This feature is for `Coroutine` package or any third party package.
    * @param bool $useUv - Turn **on/off** `uv_spawn` for child subprocess operations, will use **libuv** features,
    * if not **true** will use `proc_open` of **symfony/process**.
-   * @param callable|null $channelLoop - the Event Loop routine to use in integrationMode.
    *
    * @codeCoverageIgnore
    */
-  function spawn_setup($loop, bool $isYield = true, bool $integrationMode = true, bool $useUv = true, callable $channelLoop = null): void
+  function spawn_setup($loop, bool $isYield = true, bool $integrationMode = true, bool $useUv = true): void
   {
-    Spawn::setup($loop, $isYield, $integrationMode, $useUv, $channelLoop);
+    Spawn::setup($loop, $isYield, $integrationMode, $useUv);
   }
 }

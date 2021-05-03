@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Async\Spawn;
 
 use Async\Spawn\Future;
+use Async\Spawn\FutureInterface;
 use Async\Spawn\Process;
 use Async\Spawn\ChanneledInterface;
 
@@ -242,8 +243,10 @@ class Channeled implements ChanneledInterface
         }
 
         $checkState = $future->isChanneling();
-        if ($checkState)
+        if ($checkState) {
+          $future->channelState(1);
           $future->channelAdd();
+        }
 
         \uv_write(
           $channelInput,
@@ -255,7 +258,7 @@ class Channeled implements ChanneledInterface
         );
 
         if ($checkState)
-          $future->channelTick();
+          $future->channelTick($future->getChannelCount());
       } elseif (null !== $value && ($this->state === 'process' || \is_resource($value))) {
         $this->input[] = self::validateInput(__METHOD__, $value);
       } elseif (null !== $value) {
@@ -265,7 +268,7 @@ class Channeled implements ChanneledInterface
         }
 
         \fwrite($this->futureOutput, \serializer([$value, $messaging]));
-        \usleep(1500);
+        \usleep(2000);
       }
     }
   }
@@ -292,16 +295,17 @@ class Channeled implements ChanneledInterface
 
       $checkState = $future->isChanneling();
       if ($checkState) {
+        $future->channelState(0);
         $future->channelAdd();
       }
 
       if ($checkState) {
-        $future->channelTick();
+        $future->channelTick($future->getChannelCount());
         $value = $future->getMessage();
 
         while (\is_null($value)) {
           $future->channelAdd();
-          $future->channelTick();
+          $future->channelTick($future->getChannelCount());
           $value = $future->getMessage();
         }
 
