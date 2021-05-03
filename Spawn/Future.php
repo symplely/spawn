@@ -41,7 +41,7 @@ class Future implements FutureInterface
   protected $out;
   protected $err;
   protected $timer;
-  protected $uvCounter = 0;
+  protected $channelCounter = 0;
 
   protected $output;
   protected $errorOutput;
@@ -82,6 +82,9 @@ class Future implements FutureInterface
 
   /** @var callable */
   protected static $channelLoop = null;
+
+  /** @var callable|boolean */
+  protected $channelOverride = false;
 
   private function __construct(
     $process,
@@ -359,30 +362,14 @@ class Future implements FutureInterface
     return yield $this->getResult();
   }
 
-  /**
-   * Sets the `Channel` current state, Either `reading`, `writing`, `progressing`, `pending`.
-   *
-   * @param integer $status 0 - `reading`, 1 - `writing`, 2 - `progressing`, 3 - `pending`.
-   * @return void
-   */
-  public function channelState(int $status)
+  public function channelState(int $status): void
   {
     $this->channelState = self::STATE[$status];
   }
 
-  /**
-   * Return current `Channel` state, Either `reading`, `writing`, `progressing`, `pending`.
-   *
-   * @return string
-   */
-  public function getChannelState()
+  public function getChannelState(): string
   {
     return $this->channelState;
-  }
-
-  public function isChannelYield(): bool
-  {
-    return $this->isYield;
   }
 
   public function isChanneling(): bool
@@ -390,35 +377,58 @@ class Future implements FutureInterface
     return ($this->channelState !== Future::STATE[3]) && ($this->channelState !== Future::STATE[2]);
   }
 
-  public function channelAdd()
+  public function channelAdd(): void
   {
-    $this->uvCounter++;
+    $this->channelCounter++;
   }
 
-  public function channelRemove()
+  public function channelRemove(): void
   {
-    $this->uvCounter--;
+    $this->channelCounter--;
   }
 
   public function getChannelCount(): int
   {
-    return $this->uvCounter;
+    return $this->channelCounter;
   }
 
-  public function setChannelTick(callable $loop)
+  /**
+   * @codeCoverageIgnore
+   */
+  public static function setChannelTick(callable $loop): void
   {
     self::$channelLoop = $loop;
+  }
+
+  /**
+   * @codeCoverageIgnore
+   */
+  public function channelOverrideTick($looper = null): void
+  {
+    if (!empty($looper) && \is_callable($this->channelOverride))
+      $this->channelOverride = $looper;
+    else
+      $this->channelOverride = true;
   }
 
   public function channelTick($wait_count)
   {
     $loop = self::$channelLoop;
-    if ($this->isYield)
+    if ($this->isYield && !$this->channelOverride) {
       return $this->channelTickYield($loop, $wait_count)->next();
+    } elseif ($this->channelOverride && \is_callable($this->channelOverride)) {
+      // @codeCoverageIgnoreStart
+      $loop = $this->channelOverride;
+      return $loop($wait_count);
+      // @codeCoverageIgnoreEnd
+    }
 
     $loop($wait_count);
   }
 
+  /**
+   * @codeCoverageIgnore
+   */
   protected function channelTickYield(callable $loop, $wait_count)
   {
     yield $loop($wait_count);
@@ -512,6 +522,14 @@ class Future implements FutureInterface
   public function isStarted(): bool
   {
     return $this->hasStarted;
+  }
+
+  /**
+   * @codeCoverageIgnore
+   */
+  public function isYield(): bool
+  {
+    return $this->isYield;
   }
 
   /**
@@ -683,6 +701,14 @@ class Future implements FutureInterface
   /**
    * @codeCoverageIgnore
    */
+  public function getThen(): array
+  {
+    return $this->successCallbacks;
+  }
+
+  /**
+   * @codeCoverageIgnore
+   */
   public static function uvLoop(\UVLoop $loop)
   {
     self::$uv = $loop;
@@ -775,14 +801,12 @@ class Future implements FutureInterface
       $liveOutput = $this->lastResult = $buffer;
     }
 
-    if (\count($this->progressCallbacks) > 0) {
+    if ((\count($this->progressCallbacks) > 0) && \is_string($liveOutput) && !\is_base64($liveOutput)) {
       foreach ($this->progressCallbacks as $progressCallback) {
-        if (\is_string($liveOutput) && !\is_base64($liveOutput)) {
-          if ($this->getChannelState() === Future::STATE[3])
-            $this->channelState(2);
+        if ($this->getChannelState() === Future::STATE[3])
+          $this->channelState(2);
 
-          $progressCallback($type, $liveOutput);
-        }
+        $progressCallback($type, $liveOutput);
       }
     }
   }

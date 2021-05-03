@@ -10,7 +10,7 @@ This package is part of our [symplely/coroutine](https://symplely.github.io/coro
 
 To learn more about **libuv** features read the online tutorial [book](https://nikhilm.github.io/uvbook/index.html).
 
-The terminology in this version **3x** was changed to be inline with [`ext-parallel`](https://www.php.net/manual/en/book.parallel.php) extension usage, and to behave as a `Thread`, but without many of the extension's limitations.
+The terminology in this version **3x** was changed to be inline with [`ext-parallel`](https://www.php.net/manual/en/book.parallel.php) extension usage, and to behave as a `Thread`, but without many of that library extension's limitations.
 
 The `Channeled` and `Future` classes are both designed in a way to be extend from to create your own **implementation** of a `Parallel` based library. Currently `libuv` will be required to get full benefits of the implementation.
 
@@ -71,8 +71,10 @@ include 'vendor/autoload.php';
 
 use Async\Spawn\Spawn;
 
-// Shows output by default and Channel instance is extracted for args.
+// Shows output by default and Channel instance is extracted from args.
 $future = \parallel($function, ...$args)
+// Shows output by default, turns on yield usage, can include additional file, and the Channel instance is extracted from args.
+$future = \paralleling($function, $includeFile, ...$args)
 // Or Does not show output by default and channel instance has to be explicitly passed ins.
 $future = \spawn($function, $timeout, $channel)
 // Or
@@ -86,6 +88,8 @@ $future = Spawn::create(function () use ($thing) {
 });
 
 \spawn_run($future);
+// Or
+\paralleling_run($future);
 // Or
 $future->run();
 

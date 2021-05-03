@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Async\Spawn;
 
 use Async\Spawn\Process;
+use Generator;
 
 interface FutureInterface
 {
@@ -64,16 +65,23 @@ interface FutureInterface
   public function wait($waitTimer = 1000, bool $useYield = false);
 
   /**
+   * Return the handlers to be called when the `Future` process is successful.
+   *
+   * @return array
+   */
+  public function getThen(): array;
+
+  /**
    * Add handlers to be called when the `Future` process is successful, erred or progressing in real time.
    *
-   * @param callable $doneCallback
+   * @param callable $thenCallback
    * @param callable $failCallback
    * @param callable $progressCallback
    *
    * @return FutureInterface
    */
   public function then(
-    callable $doneCallback,
+    callable $thenCallback,
     callable $failCallback = null,
     callable $progressCallback = null
   ): FutureInterface;
@@ -90,8 +98,9 @@ interface FutureInterface
   public function signal(int $signal, callable $signalCallback): FutureInterface;
 
   /**
-   * Add handlers to be called when the `Future` process progressing, it's producing output.
-   * This can be use as a IPC handler for real time interaction.
+   * Add handlers to be called when the `Future` process **events** progressing, it's producing output.
+   * - The events are in relations to `stdin`, `stdout`, and `stderr` output.
+   * - This can be use as a IPC handler for real time interaction.
    *
    * The callback will receive **output type** either(`out` or `err`),
    * and **the output** in real-time.
@@ -218,6 +227,13 @@ interface FutureInterface
   public function isStarted(): bool;
 
   /**
+   * Check if `Future` is in `yield` integration mode.
+   *
+   * @return boolean
+   */
+  public function isYield(): bool;
+
+  /**
    * Set `Future` process to display output of child process.
    *
    * @return FutureInterface
@@ -256,9 +272,77 @@ interface FutureInterface
   public function getSignaled(): ?int;
 
   /**
-   * Call the progress callbacks on the child subprocess output in real time.
+   * Sets the `Channel` current state, Either `reading`, `writing`, `progressing`, `pending`.
    *
-   * @param string $type
+   * @param integer $status 0 - `reading`, 1 - `writing`, 2 - `progressing`, 3 - `pending`.
+   * @return void
+   */
+  public function channelState(int $status): void;
+
+  /**
+   * Return current `Channel` state, Either `reading`, `writing`, `progressing`, `pending`.
+   *
+   * @return string
+   */
+  public function getChannelState(): string;
+
+  /**
+   * Check if `channel` currently in a `send/recv` state.
+   *
+   * @return boolean
+   */
+  public function isChanneling(): bool;
+
+  /**
+   * **Add** a `send/recv` channel call.
+   *
+   * @return void
+   */
+  public function channelAdd(): void;
+
+  /**
+   * **Remove** a `send/recv` channel call.
+   *
+   * @return void
+   */
+  public function channelRemove(): void;
+
+  /**
+   * Total **added** `send/recv` channel calls.
+   *
+   * @return integer
+   */
+  public function getChannelCount(): int;
+
+  /**
+   * Set the global callable routine for `Channel` blocking event loop for `send/recv` calls.
+   *
+   * @param callable $loop
+   * @return void
+   */
+  public static function setChannelTick(callable $loop): void;
+
+  /**
+   * Auto sets `true`, to bypass `channelTick`, or override `channelTick` routine with another `$looper`.
+   *
+   * @param callable|null $looper sets a `Channel` instance specific event loop for `send/recv`.
+   * @return void
+   */
+  public function channelOverrideTick($looper = null): void;
+
+  /**
+   * Execute `Channel` blocking event loop for `send/recv` calls.
+   *
+   * @param int $wait_count `added` channel calls to wait for.
+   * @return void
+   */
+  public function channelTick($wait_count);
+
+  /**
+   * Call the progress callbacks on the child `Future` process **events** in real time.
+   * - The events are in relations to `stdin`, `stdout`, and `stderr`.
+   *
+   * @param string $type - Either `ERR`, or `OUT`
    * @param string $buffer
    *
    * @return void
