@@ -41,7 +41,6 @@ class Future implements FutureInterface
   protected $out;
   protected $err;
   protected $timer;
-  protected $channelCounter = 0;
 
   protected $output;
   protected $errorOutput;
@@ -72,6 +71,14 @@ class Future implements FutureInterface
    */
   protected $channelState = self::STATE[3];
 
+  /** @var callable */
+  protected static $channelLoop = null;
+
+  /** @var callable|boolean */
+  protected $channelOverride = false;
+  protected $channelInstance = null;
+  protected $channelCounter = 0;
+
   /**
    * @var int
    */
@@ -80,11 +87,6 @@ class Future implements FutureInterface
   protected static $future = [];
   protected static $uv = null;
 
-  /** @var callable */
-  protected static $channelLoop = null;
-
-  /** @var callable|boolean */
-  protected $channelOverride = false;
 
   private function __construct(
     $process,
@@ -168,6 +170,7 @@ class Future implements FutureInterface
     $this->signal = null;
     unset($this->messages);
     $this->messages = null;
+    $this->channelInstance = null;
   }
 
   public static function create(Process $process, int $id, int $timeout = 0, bool $isYield = false, $channel = null): FutureInterface
@@ -360,6 +363,16 @@ class Future implements FutureInterface
     \uv_run(self::$uv, \UV::RUN_DEFAULT);
 
     return yield $this->getResult();
+  }
+
+  public function setChannel(ChanneledInterface $handle): void
+  {
+    $this->channelInstance = $handle;
+  }
+
+  public function getChannel(): ChanneledInterface
+  {
+    return $this->channelInstance;
   }
 
   public function channelState(int $status): void
@@ -656,13 +669,22 @@ class Future implements FutureInterface
 
   public function getResult()
   {
-    global $___parallel___;
+    global $___paralleling;
 
     if (!$this->finalResult) {
       $this->finalResult = $this->decoded($this->lastResult);
 
       if ($this->isFinal($this->finalResult)) {
-        [$this->finalResult,, $___parallel___] = $this->finalResult;
+        [$this->finalResult,, $___paralleling] = $this->finalResult;
+        if (isset($___paralleling) && \is_array($___paralleling)) {
+          $global = $___paralleling['GLOBALS'];
+          unset($___paralleling['GLOBALS']);
+          unset($___paralleling['_GET'], $___paralleling['_POST'], $___paralleling['_COOKIE'], $___paralleling['_FILES']);
+          unset($___paralleling['_ENV'], $___paralleling['_REQUEST'], $___paralleling['_SERVER'], $___paralleling['argc']);
+          unset($___paralleling['argv'], $___paralleling['autoload'], $___paralleling['serializedClosure']);
+          unset($___paralleling['__composer_autoload_files'], $___paralleling['error'], $___paralleling['task'], $___paralleling['results']);
+          $___paralleling = \is_array($global) ? \array_merge($global, $___paralleling) : $___paralleling;
+        }
       }
     }
 

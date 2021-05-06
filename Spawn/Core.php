@@ -324,7 +324,7 @@ if (!\function_exists('spawn')) {
    */
   function parallel($task, ...$argv): FutureInterface
   {
-    global $___parallel___;
+    global $___paralleling;
     $channel = null;
     foreach ($argv as $isChannel) {
       if ($isChannel instanceof ChanneledInterface) {
@@ -337,8 +337,8 @@ if (!\function_exists('spawn')) {
     }
 
     // @codeCoverageIgnoreStart
-    $executable = function () use ($task, $argv, $___parallel___) {
-      \parallel_setup($___parallel___);
+    $executable = function () use ($task, $argv, $___paralleling) {
+      \paralleling_setup(null, $___paralleling);
       return $task(...$argv);
     };
     // @codeCoverageIgnoreEnd
@@ -361,7 +361,7 @@ if (!\function_exists('spawn')) {
    */
   function paralleling(?\Closure $task = null, ?string $include = null, ...$args): FutureInterface
   {
-    global $___parallel___;
+    global $___paralleling;
 
     $channel = null;
     foreach ($args as $isChannel) {
@@ -375,16 +375,16 @@ if (!\function_exists('spawn')) {
     }
 
     // @codeCoverageIgnoreStart
-    $executable = function () use ($task, $args, $include, $___parallel___) {
-      if (!empty($include) && \is_string($include))
-        require $include;
-
-      \parallel_setup($___parallel___);
+    $executable = function () use ($task, $args, $include, $___paralleling) {
+      \paralleling_setup($include, $___paralleling);
       return $task(...$args);
     };
     // @codeCoverageIgnoreEnd
+    $future = Spawn::create($executable, 0, $channel, true)->displayOn();
+    if ($channel instanceof ChanneledInterface)
+      $future->setChannel($channel);
 
-    return Spawn::create($executable, 0, $channel, true)->displayOn();
+    return $future;
   }
 
   /**
@@ -402,57 +402,38 @@ if (!\function_exists('spawn')) {
   }
 
   /**
-   *  Returns an array of all `user defined` global variables, without `super globals`.
+   * Returns an array of **Future** `user defined` *global* variables.
    *
-   * @param array $vars only **get_defined_vars()** should be passed in.
-   * @return array
+   * @return array|null
    */
-  function get_globals(array $vars): array
+  function paralleling_globals(): ?array
   {
-    $global = @\array_diff($vars, array(array()));
-    unset($global['argc']);
-    return $global;
-  }
+    global $___paralleling;
 
-  /**
-   *  Returns an array of all `user defined` global variables, without `super globals`.
-   * @return array
-   *
-   * @codeCoverageIgnore
-   */
-  function parallel_globals(): array
-  {
-    return \get_globals(get_defined_vars());
+    return $___paralleling;
   }
 
   /**
    * Setup `user defined` global `key => value` pair to be transferred to `Future` **subprocess**.
-   * - Also an indicator for a `Channel` that it been started by `subprocess` Future.
+   * - Can `include/require` an additional **file** to execute.
+   * - Also an indicator for a `Channel` that it has been started by `subprocess` Future.
    *
+   * @param string $include additional file to execute
    * @param array|null $keyValue
    * @return void
    */
-  function parallel_setup(?array $keyValue = null): void
+  function paralleling_setup(?string $include = null, ?array $keyValue = null): void
   {
     global $___channeled___;
+    if (!empty($include) && \is_string($include)) {
+      require $include;
+    }
 
     if (\is_array($keyValue))
       foreach ($keyValue as $key => $value)
         $GLOBALS[$key] = $value;
 
     $___channeled___ = 'parallel';
-  }
-
-  /**
-   * Destroy `All` Channel instances.
-   *
-   * @return void
-   *
-   * @codeCoverageIgnore
-   */
-  function channel_destroy()
-  {
-    Channeled::destroy();
   }
 
   /**

@@ -272,6 +272,21 @@ interface FutureInterface
   public function getSignaled(): ?int;
 
   /**
+   * Store connected `Channel` instance.
+   *
+   * @param ChanneledInterface $handle
+   * @return void
+   */
+  public function setChannel(ChanneledInterface $handle): void;
+
+  /**
+   * Return the stored connected `Channel` instance.
+   *
+   * @return ChanneledInterface
+   */
+  public function getChannel(): ChanneledInterface;
+
+  /**
    * Sets the `Channel` current state, Either `reading`, `writing`, `progressing`, `pending`.
    *
    * @param integer $status 0 - `reading`, 1 - `writing`, 2 - `progressing`, 3 - `pending`.
@@ -308,7 +323,7 @@ interface FutureInterface
   public function channelRemove(): void;
 
   /**
-   * Total **added** `send/recv` channel calls.
+   * Return total **added** `send/recv` channel calls.
    *
    * @return integer
    */

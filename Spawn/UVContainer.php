@@ -33,12 +33,8 @@ try {
   $results = $task(\spawn_channel());
 
   \fflush(\STDOUT);
-  \usleep(5);
-
-  \fwrite(\STDOUT, \serializer([$results, '___final', \parallel_globals()]));
-
-  \usleep(5);
-  \fflush(\STDOUT);
+  \usleep(500);
+  \fwrite(\STDOUT, \serializer([$results, '___final', $GLOBALS]));
   exit(0);
 } catch (\Throwable $exception) {
   \fwrite(\STDERR, \serializer(new SerializableException($exception)));

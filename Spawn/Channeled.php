@@ -43,6 +43,7 @@ class Channeled implements ChanneledInterface
    */
   protected $channel = null;
   protected $process = null;
+  protected $paralleling = null;
   protected $futureInput = \STDIN;
   protected $futureOutput = \STDOUT;
   protected $futureError = \STDERR;
@@ -52,6 +53,7 @@ class Channeled implements ChanneledInterface
     $this->open = false;
     $this->channel = null;
     $this->process = null;
+    $this->paralleling = null;
     unset($this->buffered);
     $this->buffered = null;
   }
@@ -61,6 +63,10 @@ class Channeled implements ChanneledInterface
     string $name = __FILE__,
     bool $anonymous = true
   ) {
+    global $___channeled___;
+    if ($this->capacity !== null && $___channeled___ === 'parallel')
+      $capacity = $this->capacity;
+
     if (($capacity < -1) || ($capacity == 0))
       throw new \TypeError('capacity may be -1 for unlimited, or a positive integer');
 
@@ -165,6 +171,32 @@ class Channeled implements ChanneledInterface
     }
 
     return $this;
+  }
+
+  /**
+   * Store an handle that has an `->value()` method.
+   *
+   * @param Object $handle for storing an `ext-parallel` like Future object
+   * @codeCoverageIgnore
+   */
+  public function setParalleling($handle): ChanneledInterface
+  {
+    if (\is_object($handle) && \method_exists($handle, 'value')) {
+      $this->paralleling = $handle;
+    }
+
+    return $this;
+  }
+
+  /**
+   * Return an `ext-parallel` Future like object
+   *
+   * @return object|null
+   * @codeCoverageIgnore
+   */
+  public function getParalleling()
+  {
+    return $this->paralleling;
   }
 
   public function getFuture(): ?FutureInterface

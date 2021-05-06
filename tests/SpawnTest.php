@@ -310,11 +310,14 @@ class SpawnTest extends TestCase
     $this->assertFalse($future1 === $future2);
   }
 
-  public function testCanUseClassParentProcess()
+  public function testCanUseClassParentProcessAndReturnGlobal()
   {
     /** @var MyClass $result */
     $result = null;
     $future = Spawn::create(function () {
+      global $__testing;
+      $__testing = 'helping';
+
       $class = new MyClass();
 
       $class->property = true;
@@ -326,15 +329,19 @@ class SpawnTest extends TestCase
 
     $future->run();
     $future->close();
+
     $this->assertInstanceOf(MyClass::class, $result);
     $this->assertTrue($result->property);
+
+    $global = paralleling_globals();
+    $this->assertEquals($global['__testing'], 'helping');
   }
 
   public function setGlobal()
   {
     global $test;
     $test = 100;
-    parallel_setup(['test' => 2, 'other' => 'foo']);
+    paralleling_setup(null, ['test' => 2, 'other' => 'foo']);
     $this->assertEquals($GLOBALS['test'], 2);
     $test = 4;
     $this->assertEquals($GLOBALS['test'], 4);
@@ -345,8 +352,6 @@ class SpawnTest extends TestCase
     global $test;
     $this->setGlobal();
     $this->assertEquals($GLOBALS['other'], 'foo');
-    $global = get_globals(get_defined_vars());
-    $this->assertIsArray($global);
-    $this->assertEquals($global['test'], 4);
+    $this->assertEquals($test, 4);
   }
 }

@@ -29,7 +29,7 @@ class ChanneledTest extends TestCase
     if (!\function_exists('uv_loop_new'))
       $this->markTestSkipped('Test skipped "uv_loop_new" missing.');
 
-    \channel_destroy();
+    Channel::destroy();
     \spawn_setup(null, false, false, true);
   }
 
@@ -290,17 +290,29 @@ class ChanneledTest extends TestCase
     echo \paralleling_run($future);
   }
 
+  public function testParallelingNoInclude()
+  {
+    $future = \paralleling(function () {
+      echo 'foo';
+    }, \sprintf("%s/nope.inc", __DIR__));
+
+    $this->expectOutputRegex('/[failed to open stream: No such file or directory]/');
+    echo \paralleling_run($future);
+  }
+
   public function testChannelRecvYield()
   {
     $channel = Channel::make("channel");
 
-    paralleling(function ($channel) {
+    $future = paralleling(function ($channel) {
       $data = $channel->recv();
       echo $data;
     }, null, $channel);
 
     $this->expectOutputString('OK');
     $channel->send("OK");
+
+    $this->assertSame($future->getChannel(), $channel);
   }
 
   public function testChannelSendYield()
