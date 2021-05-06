@@ -294,6 +294,7 @@ class Channeled implements ChanneledInterface
       } elseif (null !== $value && ($this->state === 'process' || \is_resource($value))) {
         $this->input[] = self::validateInput(__METHOD__, $value);
       } elseif (null !== $value) {
+        // @codeCoverageIgnoreStart
         if (!\is_resource($this->futureOutput)) {
           $this->futureOutput = \STDOUT;
           \stream_set_write_buffer($this->futureOutput, 0);
@@ -301,6 +302,7 @@ class Channeled implements ChanneledInterface
 
         \fwrite($this->futureOutput, \serializer([$value, $messaging]));
         \usleep(2000);
+        // @codeCoverageIgnoreEnd
       }
     }
   }
@@ -336,6 +338,7 @@ class Channeled implements ChanneledInterface
         $value = $future->getMessage();
 
         while (\is_null($value)) {
+          // @codeCoverageIgnoreStart
           $future->channelAdd();
           $future->channelTick($future->getChannelCount());
           $value = $future->getMessage();
@@ -345,6 +348,7 @@ class Channeled implements ChanneledInterface
       }
 
       return $future->getLast();
+      // @codeCoverageIgnoreEnd
     }
 
     if (!\is_resource($this->futureInput)) {
