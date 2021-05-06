@@ -53,6 +53,7 @@ class Future implements FutureInterface
   protected $startTime;
   protected $showOutput = false;
   protected $isYield = false;
+  protected $isKilled = false;
   protected $hasStarted = false;
 
   protected $status = null;
@@ -486,7 +487,16 @@ class Future implements FutureInterface
       $this->process->stop(0, $signal);
     }
 
+    $this->isKilled = true;
     return $this;
+  }
+
+  /**
+   * @codeCoverageIgnore
+   */
+  public function isKilled(): bool
+  {
+    return $this->isKilled;
   }
 
   public function isTimedOut(): bool

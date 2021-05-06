@@ -185,6 +185,13 @@ interface FutureInterface
   public function stop(int $signal = \SIGKILL): FutureInterface;
 
   /**
+   * Check if the `Future` process was stopped with a kiLL signal.
+   *
+   * @return bool
+   */
+  public function isKilled(): bool;
+
+  /**
    * Check if the `Future` process has timeout (max. runtime).
    *
    * @return bool
