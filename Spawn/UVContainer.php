@@ -34,6 +34,15 @@ try {
 
   \fflush(\STDOUT);
   \usleep(500);
+
+  if (isset($GLOBALS['__coroutine__']))
+    unset($GLOBALS['__coroutine__']);
+
+  unset($GLOBALS['_GET'], $GLOBALS['_POST'], $GLOBALS['_COOKIE'], $GLOBALS['_FILES']);
+  unset($GLOBALS['_ENV'], $GLOBALS['_REQUEST'], $GLOBALS['_SERVER'], $GLOBALS['argc']);
+  unset($GLOBALS['argv'], $GLOBALS['autoload'], $GLOBALS['serializedClosure']);
+  unset($GLOBALS['__composer_autoload_files'], $GLOBALS['error'], $GLOBALS['task']);
+
   \fwrite(\STDOUT, \serializer([$results, '___final', $GLOBALS]));
   exit(0);
 } catch (\Throwable $exception) {

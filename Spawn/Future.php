@@ -681,19 +681,14 @@ class Future implements FutureInterface
   {
     global $___paralleling;
 
-    if (!$this->finalResult) {
-      $this->finalResult = $this->decoded($this->lastResult);
-
+    if (\is_null($this->finalResult)) {
+      $this->finalResult = $this->decode($this->lastResult);
       if ($this->isFinal($this->finalResult)) {
-        [$this->finalResult,, $___paralleling] = $this->finalResult;
-        if (isset($___paralleling) && \is_array($___paralleling)) {
-          $global = $___paralleling['GLOBALS'];
-          unset($___paralleling['GLOBALS']);
-          unset($___paralleling['_GET'], $___paralleling['_POST'], $___paralleling['_COOKIE'], $___paralleling['_FILES']);
-          unset($___paralleling['_ENV'], $___paralleling['_REQUEST'], $___paralleling['_SERVER'], $___paralleling['argc']);
-          unset($___paralleling['argv'], $___paralleling['autoload'], $___paralleling['serializedClosure']);
-          unset($___paralleling['__composer_autoload_files'], $___paralleling['error'], $___paralleling['task'], $___paralleling['results']);
-          $___paralleling = \is_array($global) ? \array_merge($global, $___paralleling) : $___paralleling;
+        [$this->finalResult,, $paralleling] = $this->finalResult;
+        if (isset($paralleling) && \is_array($paralleling)) {
+          unset($paralleling['GLOBALS']);
+          unset($paralleling['results']);
+          $___paralleling = \is_array($___paralleling) ? \array_merge($___paralleling, $paralleling) : $paralleling;
         }
       }
     }
@@ -861,9 +856,8 @@ class Future implements FutureInterface
   {
     $this->status = true;
 
-    $result = null;
-    if ($this->getResult() && !$this->getErrorOutput()) {
-      $result = $this->finalResult;
+    $result = $this->getResult();
+    if (!$this->getErrorOutput()) {
     } elseif ($this->getErrorOutput()) {
       return $this->triggerError($isYield);
     }
