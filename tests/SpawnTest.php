@@ -226,6 +226,7 @@ class SpawnTest extends TestCase
     $future->stop();
     $future->wait();
     $this->assertFalse($future->isRunning());
+    $this->assertTrue($future->isKilled());
   }
 
   public function testSignal()

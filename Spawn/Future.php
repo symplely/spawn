@@ -491,9 +491,6 @@ class Future implements FutureInterface
     return $this;
   }
 
-  /**
-   * @codeCoverageIgnore
-   */
   public function isKilled(): bool
   {
     return $this->isKilled;

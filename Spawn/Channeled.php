@@ -289,8 +289,17 @@ class Channeled implements ChanneledInterface
           }
         );
 
-        if ($checkState)
-          $future->channelTick($future->getChannelCount());
+        if ($checkState) {
+          while ($future->getChannelCount() > 0) {
+            $future->channelTick($future->getChannelCount());
+          }
+
+          if ($future->isYield()) {
+            $future->channelTick(0);
+            $future->channelTick(0);
+            $future->channelTick(0);
+          }
+        }
       } elseif (null !== $value && ($this->state === 'process' || \is_resource($value))) {
         $this->input[] = self::validateInput(__METHOD__, $value);
       } elseif (null !== $value) {
