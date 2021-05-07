@@ -371,7 +371,7 @@ class Future implements FutureInterface
     $this->channelInstance = $handle;
   }
 
-  public function getChannel(): ChanneledInterface
+  public function getChannel(): ?ChanneledInterface
   {
     return $this->channelInstance;
   }

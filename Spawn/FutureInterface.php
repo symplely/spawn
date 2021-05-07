@@ -289,9 +289,9 @@ interface FutureInterface
   /**
    * Return the stored connected `Channel` instance.
    *
-   * @return ChanneledInterface
+   * @return ChanneledInterface|null
    */
-  public function getChannel(): ChanneledInterface;
+  public function getChannel(): ?ChanneledInterface;
 
   /**
    * Sets the `Channel` current state, Either `reading`, `writing`, `progressing`, `pending`.

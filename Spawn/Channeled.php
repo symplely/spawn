@@ -179,7 +179,7 @@ class Channeled implements ChanneledInterface
    * @param Object $handle for storing an `ext-parallel` like Future object
    * @codeCoverageIgnore
    */
-  public function setParalleling($handle): ChanneledInterface
+  public function setParalleling($handle): self
   {
     if (\is_object($handle) && \method_exists($handle, 'value')) {
       $this->paralleling = $handle;
