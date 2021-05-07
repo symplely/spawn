@@ -292,12 +292,12 @@ class Channeled implements ChanneledInterface
         if ($checkState) {
           while ($future->getChannelCount() > 0) {
             $future->channelTick($future->getChannelCount());
-          }
 
-          if ($future->isYield()) {
-            $future->channelTick(0);
-            $future->channelTick(0);
-            $future->channelTick(0);
+            if ($future->isYield()) {
+              $future->channelTick(0);
+              $future->channelTick(0);
+              $future->channelTick(0);
+            }
           }
         }
       } elseif (null !== $value && ($this->state === 'process' || \is_resource($value))) {
