@@ -255,14 +255,19 @@ class Channeled implements ChanneledInterface
   {
     global $___channeled___;
 
+    if ($this->isClosed())
+      $this->throwClosed(\sprintf('channel(%s) closed', $this->name));
+
     if (
-      !isset($___channeled___) && null !== $value && $this->process === null
-      && !\is_resource($value) && ($this->capacity > $this->buffered->count()) && $this->type === 'buffered'
+      !isset($___channeled___) && null !== $value && $this->process === null && !\is_resource($value)
+      && ($this->capacity > $this->buffered->count() || $this->capacity == -1) && $this->type === 'buffered'
     ) {
-      $this->buffered->enqueue($value);
+      try {
+        $this->buffered->enqueue(\serializer($value));
+      } catch (\Error $e) {
+        $this->throwIllegalValue($e->getMessage());
+      }
     } else {
-      if ($this->isClosed())
-        $this->throwClosed(\sprintf('channel(%s) closed', $this->name));
 
       $messaging = '___message';
       if (null !== $value && $this->process instanceof \UVProcess) {
@@ -323,8 +328,13 @@ class Channeled implements ChanneledInterface
     if (
       !isset($___channeled___) && $this->type === 'buffered'
       && $this->process === null && !$this->buffered->isEmpty()
-    )
-      return $this->buffered->dequeue();
+    ) {
+      try {
+        return \deserializer($this->buffered->dequeue());
+      } catch (\Error $e) {
+        return $this->throwIllegalValue($e->getMessage());
+      }
+    }
 
     if ($this->isClosed())
       $this->throwClosed(\sprintf('channel(%s) closed', $this->name));
