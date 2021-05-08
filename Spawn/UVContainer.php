@@ -33,7 +33,7 @@ try {
   $results = $task(\spawn_channel());
 
   \fflush(\STDOUT);
-  \usleep(500);
+  \usleep(1000);
 
   if (isset($GLOBALS['__coroutine__']))
     unset($GLOBALS['__coroutine__']);
