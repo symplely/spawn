@@ -321,7 +321,7 @@ class Channeled implements ChanneledInterface
         }
 
         \fwrite($this->futureOutput, \serializer([$value, $messaging]));
-        \usleep(3000);
+        \usleep(2000);
         // @codeCoverageIgnoreEnd
       }
     }
@@ -338,7 +338,7 @@ class Channeled implements ChanneledInterface
       try {
         return \deserializer($this->buffered->dequeue());
       } catch (\Error $e) {
-        return static::throwIllegalValue($e->getMessage());
+        static::throwIllegalValue($e->getMessage());
       }
     }
 
