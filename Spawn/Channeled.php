@@ -60,7 +60,7 @@ class Channeled implements ChanneledInterface
 
   public function __construct(
     int $capacity = -1,
-    string $name = __FILE__,
+    ?string $name = null,
     bool $anonymous = true
   ) {
     global $___channeled___;
@@ -82,6 +82,7 @@ class Channeled implements ChanneledInterface
     if ($anonymous) {
       self::$anonymous++;
       $this->index = self::$anonymous;
+      $name = empty($name) ? $_SERVER['SCRIPT_NAME'] : $name;
       $this->name = \sprintf("%s#%u@%d[%d]", $name, __LINE__, \strlen($name), $this->index);
       self::$channels[$this->index] = $this;
     } else {
@@ -104,10 +105,10 @@ class Channeled implements ChanneledInterface
    */
   public static function destroy()
   {
-    foreach (self::$channels as $key => $instance) {
-      if (self::isChannel($key)) {
+    foreach (static::$channels as $key => $instance) {
+      if (static::isChannel($key)) {
         unset($instance);
-        unset(self::$channels[$key]);
+        unset(static::$channels[$key]);
       }
     }
   }
@@ -132,27 +133,32 @@ class Channeled implements ChanneledInterface
 
   public static function make(string $name, int $capacity = -1): ChanneledInterface
   {
-    if (self::isChannel($name)) {
-      if (self::$channels[$name]->getFuture() === null && !self::$channels[$name]->isClose())
-        return self::$channels[$name];
+    if (static::isChannel($name)) {
+      if (
+        static::$channels[$name]->getFuture() === null
+        && static::$channels[$name] !== null
+        && \method_exists(static::$channels[$name], 'isClose')
+        && !static::$channels[$name]->isClose()
+      )
+        return static::$channels[$name];
 
-      self::throwExistence(\sprintf('channel named %s already exists', $name));
+      static::throwExistence(\sprintf('channel named %s already exists', $name));
     }
 
-    return new self($capacity, $name, false);
+    return new static($capacity, $name, false);
   }
 
   public static function open(string $name): ChanneledInterface
   {
     global $___channeled___;
 
-    if (self::isChannel($name))
-      return self::$channels[$name];
+    if (static::isChannel($name))
+      return static::$channels[$name];
 
     if ($___channeled___ === 'parallel')
-      return new self(-1, $name, false);
+      return new static(-1, $name, false);
 
-    self::throwExistence(\sprintf('channel named %s not found', $name));
+    static::throwExistence(\sprintf('channel named %s not found', $name));
   }
 
   /**
@@ -177,6 +183,7 @@ class Channeled implements ChanneledInterface
    * Store an handle that has an `->value()` method.
    *
    * @param Object $handle for storing an `ext-parallel` like Future object
+   * @return self
    * @codeCoverageIgnore
    */
   public function setParalleling($handle): self
@@ -221,7 +228,7 @@ class Channeled implements ChanneledInterface
   public function close(): void
   {
     if ($this->isClosed())
-      $this->throwClosed(\sprintf('channel(%s) already closed', $this->name));
+      static::throwClosed(\sprintf('channel(%s) already closed', $this->name));
 
     $this->open = false;
   }
@@ -242,7 +249,7 @@ class Channeled implements ChanneledInterface
    */
   public static function isChannel($name): bool
   {
-    return isset(self::$channels[$name]) && self::$channels[$name] instanceof ChanneledInterface;
+    return isset(static::$channels[$name]) && static::$channels[$name] instanceof ChanneledInterface;
   }
 
   public static function isMessenger($message): bool
@@ -256,7 +263,7 @@ class Channeled implements ChanneledInterface
     global $___channeled___;
 
     if ($this->isClosed())
-      $this->throwClosed(\sprintf('channel(%s) closed', $this->name));
+      static::throwClosed(\sprintf('channel(%s) closed', $this->name));
 
     if (
       !isset($___channeled___) && null !== $value && $this->process === null && !\is_resource($value)
@@ -265,10 +272,9 @@ class Channeled implements ChanneledInterface
       try {
         $this->buffered->enqueue(\serializer($value));
       } catch (\Error $e) {
-        $this->throwIllegalValue($e->getMessage());
+        static::throwIllegalValue($e->getMessage());
       }
     } else {
-
       $messaging = '___message';
       if (null !== $value && $this->process instanceof \UVProcess) {
         $channelInput = $this->channel->getStdio()[0];
@@ -315,7 +321,7 @@ class Channeled implements ChanneledInterface
         }
 
         \fwrite($this->futureOutput, \serializer([$value, $messaging]));
-        \usleep(2000);
+        \usleep(3000);
         // @codeCoverageIgnoreEnd
       }
     }
@@ -332,12 +338,12 @@ class Channeled implements ChanneledInterface
       try {
         return \deserializer($this->buffered->dequeue());
       } catch (\Error $e) {
-        return $this->throwIllegalValue($e->getMessage());
+        return static::throwIllegalValue($e->getMessage());
       }
     }
 
     if ($this->isClosed())
-      $this->throwClosed(\sprintf('channel(%s) closed', $this->name));
+      static::throwClosed(\sprintf('channel(%s) closed', $this->name));
 
     if ($this->process instanceof \UVProcess) {
       $future = $this->channel;
@@ -527,7 +533,7 @@ class Channeled implements ChanneledInterface
         return new \IteratorIterator($input);
       }
 
-      self::throwIllegalValue(\sprintf('%s only accepts strings, Traversable objects or stream resources.', $caller));
+      static::throwIllegalValue(\sprintf('%s only accepts strings, Traversable objects or stream resources.', $caller));
     }
 
     return $input;
