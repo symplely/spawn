@@ -226,6 +226,18 @@ class SpawnTest extends TestCase
     $future->stop();
     $future->wait();
     $this->assertFalse($future->isRunning());
+    $this->assertFalse($future->isKilled());
+  }
+
+  public function testKill()
+  {
+    $future = Spawn::create(function () {
+      \sleep(10);
+    })->start();
+    $this->assertTrue($future->isRunning());
+    $future->kill();
+    $future->wait();
+    $this->assertFalse($future->isRunning());
     $this->assertTrue($future->isKilled());
   }
 

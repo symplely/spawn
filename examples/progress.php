@@ -14,7 +14,7 @@ $future = \spawn(
     $channel->send('ping');
     echo $channel->recv();
     echo $channel->recv();
-    return \flush_value('The game!');
+    return 'The game!';
   }
 )->progress(function ($type, $data) use ($ipc) {
   if ('ping' === $data) {

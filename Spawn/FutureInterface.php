@@ -57,6 +57,12 @@ interface FutureInterface
   public function close();
 
   /**
+   * Kill `Future` process, and set state to `killed`.
+   * - Will invoke any `signal` handlers afterwards.
+   */
+  public function Kill();
+
+  /**
    * Waits for all processes to terminate.
    *
    * @param int $waitTimer - Halt time in micro seconds
@@ -185,7 +191,7 @@ interface FutureInterface
   public function stop(int $signal = \SIGKILL): FutureInterface;
 
   /**
-   * Check if the `Future` process was stopped with a kiLL signal.
+   * Check if the `Future` process was ended with the `kiLL()` method.
    *
    * @return bool
    */

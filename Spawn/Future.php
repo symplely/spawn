@@ -309,7 +309,7 @@ class Future implements FutureInterface
           }
         });
       }
-    } else {
+    } elseif ($this->process instanceof Process) {
       $this->process->start(function ($type, $buffer) {
         $data = $this->clean($buffer);
         if ($type === 'err')
@@ -479,6 +479,7 @@ class Future implements FutureInterface
     return $this->triggerError($useYield);
   }
 
+
   public function stop(int $signal = \SIGKILL): FutureInterface
   {
     if ($this->process instanceof \UVProcess && \uv_is_active($this->process)) {
@@ -487,8 +488,13 @@ class Future implements FutureInterface
       $this->process->stop(0, $signal);
     }
 
-    $this->isKilled = true;
     return $this;
+  }
+
+  public function kill()
+  {
+    $this->stop();
+    $this->isKilled = true;
   }
 
   public function isKilled(): bool
@@ -520,7 +526,7 @@ class Future implements FutureInterface
     if ($this->process instanceof \UVProcess)
       return (bool) \uv_is_active($this->process) && \is_null($this->status);
 
-    return $this->process->isRunning();
+    return $this->process instanceof Process && $this->process->isRunning();
   }
 
   public function isSuccessful(): bool
@@ -528,7 +534,7 @@ class Future implements FutureInterface
     if ($this->process instanceof \UVProcess)
       return ($this->status === true);
 
-    return $this->process->isSuccessful();
+    return $this->process instanceof Process && $this->process->isSuccessful();
   }
 
   public function isTerminated(): bool
@@ -536,7 +542,7 @@ class Future implements FutureInterface
     if ($this->process instanceof \UVProcess)
       return ($this->status === false) || \is_string($this->status);
 
-    return $this->process->isTerminated();
+    return $this->process instanceof Process && $this->process->isTerminated();
   }
 
   public function isStarted(): bool

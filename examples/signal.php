@@ -14,7 +14,7 @@ $future = \spawn(
     $channel->send('ping');
     echo $channel->recv();
     echo $channel->recv();
-    return \flush_value('The game!');
+    return 'The game!';
   }
 )->signal(\SIGKILL, function ($signal) {
   echo "the process has been terminated with 'SIGKILL - " . $signal . "' signal!" . \PHP_EOL;
