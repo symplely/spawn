@@ -252,7 +252,7 @@ class SpawnTest extends TestCase
     });
 
     $future->stop();
-    $this->assertTrue($future->isRunning());
+    $this->assertFalse($future->isRunning());
     $future->run();
     $this->assertFalse($future->isRunning());
     $this->assertFalse($future->isSuccessful());
@@ -273,7 +273,7 @@ class SpawnTest extends TestCase
     });
 
     $future->stop();
-    $this->assertTrue($future->isRunning());
+    $this->assertFalse($future->isRunning());
     $yield = $future->yielding();
     $this->assertTrue($yield instanceof \Generator);
     $this->assertNull($yield->current());

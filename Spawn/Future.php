@@ -166,7 +166,6 @@ class Future implements FutureInterface
     $this->processOutput = null;
     $this->processError = null;
     $this->process = null;
-    $this->status = null;
     $this->task = null;
     $this->signal = null;
     unset($this->messages);
@@ -488,6 +487,7 @@ class Future implements FutureInterface
       $this->process->stop(0, $signal);
     }
 
+    $this->status = false;
     return $this;
   }
 
