@@ -487,7 +487,6 @@ class Future implements FutureInterface
       $this->process->stop(0, $signal);
     }
 
-    $this->status = false;
     return $this;
   }
 
