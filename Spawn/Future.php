@@ -540,8 +540,10 @@ class Future implements FutureInterface
   {
     if ($this->process instanceof \UVProcess)
       return ($this->status === false) || \is_string($this->status);
+    elseif ($this->process instanceof Process)
+      return $this->process->isTerminated();
 
-    return $this->process instanceof Process && $this->process->isTerminated();
+    return $this->status === false || \is_string($this->status);
   }
 
   public function isStarted(): bool
