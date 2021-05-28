@@ -32,8 +32,7 @@ try {
   $task = \spawn_decode($serializedClosure);
   $results = $task(\spawn_channel());
 
-  \fflush(\STDOUT);
-  \usleep(1000);
+  \usleep(2000);
 
   if (isset($GLOBALS['__coroutine__']))
     unset($GLOBALS['__coroutine__']);
