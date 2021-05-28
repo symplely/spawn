@@ -316,7 +316,7 @@ class Channeled implements ChanneledInterface
       } elseif (null !== $value) {
         // @codeCoverageIgnoreStart
         if (!\is_resource($this->futureOutput)) {
-          $this->futureOutput = \STDOUT;
+          $this->futureOutput = \fopen('php://stdout', 'w');
           \stream_set_write_buffer($this->futureOutput, 0);
         }
 
@@ -377,7 +377,7 @@ class Channeled implements ChanneledInterface
     }
 
     if (!\is_resource($this->futureInput)) {
-      $this->futureInput = \STDIN;
+      $this->futureInput = \fopen('php://stdin', 'r');
       \stream_set_read_buffer($this->futureInput, 0);
     }
 
@@ -417,7 +417,7 @@ class Channeled implements ChanneledInterface
   public function read(int $length = 0): string
   {
     if (!\is_resource($this->futureInput)) {
-      $this->futureInput = \STDIN;
+      $this->futureInput = \fopen('php://stdin', 'r');
       \stream_set_read_buffer($this->futureInput, 0);
     }
 
@@ -435,7 +435,7 @@ class Channeled implements ChanneledInterface
   public function write($message): int
   {
     if (!\is_resource($this->futureInput)) {
-      $this->futureOutput = \STDOUT;
+      $this->futureOutput = \fopen('php://stdout', 'w');
       \stream_set_write_buffer($this->futureOutput, 0);
     }
 
