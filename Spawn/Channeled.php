@@ -41,7 +41,7 @@ class Channeled implements ChanneledInterface
    *
    * @var Object|Future
    */
-  protected $channel = null;
+  protected $future = null;
   protected $process = null;
   protected $paralleling = null;
   protected $futureInput = \STDIN;
@@ -51,7 +51,7 @@ class Channeled implements ChanneledInterface
   public function __destruct()
   {
     $this->open = false;
-    $this->channel = null;
+    $this->future = null;
     $this->process = null;
     $this->paralleling = null;
     unset($this->buffered);
@@ -172,7 +172,7 @@ class Channeled implements ChanneledInterface
   {
     $this->futureSet = false;
     if (\is_object($handle) && \method_exists($handle, 'getHandler')) {
-      $this->channel = $handle;
+      $this->future = $handle;
       $this->process = $handle->getHandler();
     }
 
@@ -208,7 +208,7 @@ class Channeled implements ChanneledInterface
 
   public function getFuture(): ?FutureInterface
   {
-    return $this->channel;
+    return $this->future;
   }
 
   public function setState($future = 'process'): ChanneledInterface
@@ -277,8 +277,8 @@ class Channeled implements ChanneledInterface
     } else {
       $messaging = '___message';
       if (null !== $value && $this->process instanceof \UVProcess) {
-        $channelInput = $this->channel->getStdio()[0];
-        $future = $this->channel;
+        $channelInput = $this->future->getStdio()[0];
+        $future = $this->future;
         if (!$future->isStarted()) {
           $future->start();
           if ($future->getChannelState() === Future::STATE[3])
@@ -346,7 +346,7 @@ class Channeled implements ChanneledInterface
       static::throwClosed(\sprintf('channel(%s) closed', $this->name));
 
     if ($this->process instanceof \UVProcess) {
-      $future = $this->channel;
+      $future = $this->future;
       if (!$future->isStarted()) {
         $future->start();
         $future->channelState(0);
@@ -406,8 +406,8 @@ class Channeled implements ChanneledInterface
    */
   public function kill(): void
   {
-    if (\is_object($this->channel) && \method_exists($this->channel, 'stop')) {
-      $this->channel->stop();
+    if (\is_object($this->future) && \method_exists($this->future, 'stop')) {
+      $this->future->stop();
     }
   }
 
