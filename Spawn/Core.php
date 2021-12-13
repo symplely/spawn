@@ -6,27 +6,29 @@ use Async\Spawn\Channeled;
 use Async\Spawn\ChanneledInterface;
 use Async\Spawn\Spawn;
 use Async\Spawn\FutureInterface;
+use Async\Spawn\ParallelInterface;
+
 use function Opis\Closure\{serialize as serializing, unserialize as deserializing};
 
 if (!\defined('DS'))
   \define('DS', \DIRECTORY_SEPARATOR);
 
-if (!defined('IS_WINDOWS'))
+if (!\defined('IS_WINDOWS'))
   \define('IS_WINDOWS', ('\\' === \DS));
 
-if (!defined('IS_LINUX'))
+if (!\defined('IS_LINUX'))
   \define('IS_LINUX', ('/' === \DS));
 
-if (!defined('IS_MACOS'))
+if (!\defined('IS_MACOS'))
   \define('IS_MACOS', (\PHP_OS === 'Darwin'));
 
-if (!defined('IS_PHP8'))
+if (!\defined('IS_PHP8'))
   \define('IS_PHP8', ((float) \phpversion() >= 8.0));
 
-if (!defined('IS_UV'))
+if (!\defined('IS_UV'))
   \define('IS_UV', \function_exists('uv_loop_new'));
 
-if (!defined('MS')) {
+if (!\defined('MS')) {
   /**
    * Multiply with to convert to seconds from a millisecond number.
    * Use with `sleep_for()`.
@@ -36,13 +38,13 @@ if (!defined('MS')) {
   \define('MS', 0.001);
 }
 
-if (!defined('EOL'))
+if (!\defined('EOL'))
   \define('EOL', \PHP_EOL);
 
-if (!defined('CRLF'))
+if (!\defined('CRLF'))
   \define('CRLF', "\r\n");
 
-if (!defined('IS_CLI')) {
+if (!\defined('IS_CLI')) {
   /**
    * Check if php is running from cli (command line).
    */
@@ -291,7 +293,7 @@ if (\IS_WINDOWS) {
 
 if (!\function_exists('spawn')) {
   /**
-   * Create an Future `sub/child` process either by a **system command** or `callable`.
+   * Create an **Future** `child` process either by a **system command** or `callable`.
    *
    * @param callable $executable
    * @param int $timeout
@@ -300,7 +302,6 @@ if (!\function_exists('spawn')) {
    *
    * @return FutureInterface
    * @throws LogicException In case the `Future` process is already running.
-   * @see https://www.php.net/manual/en/parallel.run.php
    */
   function spawn(
     $executable,
@@ -312,7 +313,28 @@ if (!\function_exists('spawn')) {
   }
 
   /**
-   * Create an Future `sub/child` **task**.
+   * Create an **Future** `child` process either by a **system command** or `callable`.
+   * - All child output is displayed.
+   *
+   * @param callable $executable
+   * @param int $timeout
+   * @param Channeled|mixed|null $channel instance to set the Future IPC handler.
+   * @param null|bool $isYield
+   *
+   * @return FutureInterface
+   * @throws LogicException In case the `Future` process is already running.
+   */
+  function spawning(
+    $executable,
+    int $timeout = 0,
+    $channel = null,
+    bool $isYield = null
+  ): FutureInterface {
+    return Spawn::create($executable, $timeout, $channel, $isYield)->displayOn();
+  }
+
+  /**
+   * Create an **Future** `child` **task**.
    * This function exists to give same behavior as **parallel\run** of `ext-parallel` extension,
    * but without any of the it's limitations. All child output is displayed.
    *
@@ -343,7 +365,11 @@ if (!\function_exists('spawn')) {
     };
     // @codeCoverageIgnoreEnd
 
-    return Spawn::create($executable, 0, $channel, false)->displayOn();
+    $future = \spawning($executable, 0, $channel);
+    if ($channel instanceof ChanneledInterface)
+      $future->setChannel($channel);
+
+    return $future;
   }
 
   /**
@@ -380,25 +406,11 @@ if (!\function_exists('spawn')) {
       return $task(...$args);
     };
     // @codeCoverageIgnoreEnd
-    $future = Spawn::create($executable, 0, $channel, true)->displayOn();
+    $future = \spawning($executable, 0, $channel, true);
     if ($channel instanceof ChanneledInterface)
       $future->setChannel($channel);
 
     return $future;
-  }
-
-  /**
-   * Start the `Future` process and wait to terminate, and return any results.
-   * - This feature is for standalone mode only.
-   * - This feature runs **libuv** *uv_run(`loop`)* in *`UV::RUN_DEFAULT`* mode.
-   *
-   * @param FutureInterface $future
-   * @return mixed
-   * @see https://www.php.net/manual/en/parallel.run.php
-   */
-  function paralleling_run(FutureInterface $future)
-  {
-    return $future->yielding()->next();
   }
 
   /**
@@ -446,6 +458,17 @@ if (!\function_exists('spawn')) {
   function spawn_run(FutureInterface $future, bool $displayOutput = false)
   {
     return $displayOutput ? $future->displayOn()->run() : $future->run();
+  }
+
+  /**
+   * Wait for a **pool** of **Parallel** `Future` processes to terminate, and return any results.
+   *
+   * @param ParallelInterface $futures
+   * @return mixed
+   */
+  function spawn_wait(ParallelInterface $futures)
+  {
+    return $futures->wait();
   }
 
   /**
@@ -581,17 +604,17 @@ if (!\function_exists('spawn')) {
    * Setup for third party integration.
    *
    * @param \UVLoop|null $loop - Set UVLoop handle, this feature is only available when using `libuv`.
-   * @param bool $isYield - Set/expects the launched sub processes to be called and using the `yield` keyword.
-   * @param bool $integrationMode -Should `uv_spawn` package just set `future` process status, don't call callback handlers.
-   * - The callbacks handlers are for this library standalone use.
-   * - The `uv_spawn` preset callback will only set process status.
-   * - This feature is for `Coroutine` package or any third party package.
+   * @param bool $isYield - Set/expects the launched child processes to be called and be using the `yield` keyword.
+   * @param bool $integrationMode - Use to bypass calling `uv_spawn` callbacks handlers.
+   * - `false` the callbacks handlers are executed immediately for standalone use.
+   * - `true` have `uv_spawn` callback just set process **state** status.
+   * - This feature is for `Coroutine` package or any third party package to check status to call callbacks separately.
    * @param bool $useUv - Turn **on/off** `uv_spawn` for child subprocess operations, will use **libuv** features,
    * if not **true** will use `proc_open` of **symfony/process**.
    *
    * @codeCoverageIgnore
    */
-  function spawn_setup($loop, bool $isYield = true, bool $integrationMode = true, bool $useUv = true): void
+  function spawn_setup($loop, ?bool $isYield = true, bool $integrationMode = true, bool $useUv = true): void
   {
     Spawn::setup($loop, $isYield, $integrationMode, $useUv);
   }

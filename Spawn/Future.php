@@ -745,6 +745,11 @@ class Future implements FutureInterface
     self::$uv = $loop;
   }
 
+  public static function getUvLoop(): ?\UVLoop
+  {
+    return self::$uv;
+  }
+
   public function then(
     callable $thenCallback,
     callable $failCallback = null,

@@ -470,7 +470,7 @@ class Channeled implements ChanneledInterface
     return $written;
   }
 
-  public function getIterator()
+  public function getIterator(): \Traversable
   {
     $this->state = 'process';
     $this->open = true;

@@ -150,32 +150,33 @@ class Spawn
      * Setup for third party integration.
      *
      * @param \UVLoop|null $loop - Set UVLoop handle, this feature is only available when using `libuv`.
-     * @param bool $isYield - Set/expects the launched sub processes to be called and using the `yield` keyword.
-     * @param bool $integrationMode - Bypass calling `uv_spawn` callbacks handlers.
-     * - The callbacks handlers are for standalone use.
-     * - The `uv_spawn` callback will only set process status.
-     * - This feature is for `Coroutine` package or any third party package.
+     * @param bool $isYield - Set/expects the launched child processes to be called and be using the `yield` keyword.
+     * @param bool $integrationMode - Use to bypass calling `uv_spawn` callbacks handlers.
+     * - `false` the callbacks handlers are executed immediately for standalone use.
+     * - `true` have `uv_spawn` callback just set process **state** status.
+     * - This feature is for `Coroutine` package or any third party package to check status to call callbacks separately.
      * @param bool $useUv - Turn **on/off** `uv_spawn` for child subprocess operations, will use **libuv** features,
      * if not **true** will use `proc_open` of **symfony/process**.
      *
      * @codeCoverageIgnore
      */
-    public static function setup($loop, bool $isYield = true, bool $integrationMode = true, bool $useUv = true): void
+    public static function setup($loop, ?bool $isYield = true, bool $integrationMode = true, bool $useUv = true): void
     {
         if ($loop instanceof \UVLoop) {
             Future::uvLoop($loop);
         }
 
         self::$integrationMode = $integrationMode;
-        self::$isYield = $isYield;
+        self::$isYield = ($isYield === null) ? self::$isYield : $isYield;
         self::$useUv = $useUv;
     }
 
     /**
-     * Returning `false` means:
+     * Return `Future` callback handlers integration status for `uv_spawn`.
      *
-     * - The callbacks handlers will be executed, system in standalone mode, if `true` preset callbacks would only set status.
-     * - This feature is for `Coroutine` package or any third party package.
+     * - If `false` callback handlers will be executed immediately, system in single standalone mode.
+     * - If `true` a preset callback will only set **state** status.
+     * - This feature is for `Coroutine` package or any third party package to check status to call callbacks separately.
      *
      * @return bool
      * @internal
@@ -183,6 +184,17 @@ class Spawn
     public static function isIntegration(): bool
     {
         return self::$integrationMode;
+    }
+
+    /**
+     * Set integration mode to `true`, a `uv_spawn` preset `Future` callbacks will only set **state** status.
+     * - This feature is for `Coroutine` package or any third party package to check status to call callbacks separately.
+     *
+     * @internal
+     */
+    public static function integrationMode()
+    {
+        self::$integrationMode = true;
     }
 
     /**

@@ -10,6 +10,12 @@ interface ChanneledInterface extends \IteratorAggregate
   public static function open(string $name): ChanneledInterface;
 
   /**
+   * Check if the channel has been closed yet.
+   * @return bool
+   */
+  public function isClosed(): bool;
+
+  /**
    * Shall send the given value on this channel.
    *
    * @param mixed $value

@@ -287,7 +287,7 @@ class ChanneledTest extends TestCase
     }, \sprintf("%s/ChannelInclude.inc", __DIR__));
 
     $this->expectOutputString('OK');
-    echo \paralleling_run($future);
+    echo $future->yielding()->next();
   }
 
   public function testParallelingNoInclude()
@@ -297,7 +297,7 @@ class ChanneledTest extends TestCase
     }, \sprintf("%s/nope.inc", __DIR__));
 
     $this->expectOutputRegex('/[failed to open stream: No such file or directory]/');
-    echo \paralleling_run($future);
+    echo $future->yielding()->next();
   }
 
   public function testChannelRecvYield()

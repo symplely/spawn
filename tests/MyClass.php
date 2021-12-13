@@ -8,6 +8,6 @@ class MyClass
 
     public function throwException()
     {
-        throw new \Exception('test');
+        throw new MyException('test');
     }
 }
