@@ -37,10 +37,10 @@ final class FutureHandler
    */
   public function __construct(
     $coroutine = null,
-    callable $timedOutCallback,
-    callable $finishCallback,
-    callable $failCallback,
-    callable $signalCallback
+    callable $timedOutCallback = null,
+    callable $finishCallback = null,
+    callable $failCallback = null,
+    callable $signalCallback = null
   ) {
     if (Parallel::hasLoop($coroutine)) {
       // @codeCoverageIgnoreStart
