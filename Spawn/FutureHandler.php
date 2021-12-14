@@ -27,26 +27,23 @@ final class FutureHandler
   private $loop = null;
 
   /**
-   * Setup what the `Future` process `event` manager handle calls.
-   *
-   * @param object|null $coroutine For external `Coroutine` Class
+   * @param object|null $loop custom **event loop** instance
    * @param callable $timedOutCallback
    * @param callable $finishCallback
    * @param callable $failCallback
    * @param callable $signalCallback
+   * @throws \Exception if invalid **$loop** object.
    */
   public function __construct(
-    $coroutine = null,
+    $loop = null,
     callable $timedOutCallback = null,
     callable $finishCallback = null,
     callable $failCallback = null,
     callable $signalCallback = null
   ) {
-    if (Parallel::hasLoop($coroutine)) {
-      // @codeCoverageIgnoreStart
-      $this->loop = $coroutine;
-      // @codeCoverageIgnoreEnd
-    } else {
+    if (Parallel::isHandler($loop)) {
+      $this->loop = $loop;
+    } elseif ($loop === null) {
       $this->loop = new class
       {
         public function executeTask($task, $parameters = null)
@@ -63,6 +60,8 @@ final class FutureHandler
             && \function_exists('posix_kill');
         }
       };
+    } else {
+      throw new \Exception('Invalid "Coroutine" or custom "Event Loop" instance!');
     }
 
     $this->timedOutCallback = $timedOutCallback;

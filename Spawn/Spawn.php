@@ -160,15 +160,19 @@ class Spawn
      *
      * @codeCoverageIgnore
      */
-    public static function setup($loop, ?bool $isYield = true, bool $integrationMode = true, bool $useUv = true): void
-    {
+    public static function setup(
+        $loop = null,
+        ?bool $isYield = true,
+        ?bool $integrationMode = true,
+        ?bool $useUv = true
+    ): void {
         if ($loop instanceof \UVLoop) {
             Future::uvLoop($loop);
         }
 
-        self::$integrationMode = $integrationMode;
+        self::$integrationMode = ($integrationMode === null) ? self::$integrationMode : $integrationMode;
         self::$isYield = ($isYield === null) ? self::$isYield : $isYield;
-        self::$useUv = $useUv;
+        self::$useUv = ($useUv === null) ? self::$useUv : $useUv;
     }
 
     /**

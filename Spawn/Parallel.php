@@ -50,52 +50,60 @@ class Parallel implements ArrayAccess, ParallelInterface
       $this->close();
   }
 
-  public static function hasLoop($coroutine = null): bool
+  public static function isCoroutine($object): bool
   {
     return (\class_exists('Coroutine', false)
-      && \is_object($coroutine)
-      && \method_exists($coroutine, 'addFuture')
-      && \method_exists($coroutine, 'execute')
-      && \method_exists($coroutine, 'executeTask')
-      && \method_exists($coroutine, 'run')
-      && \method_exists($coroutine, 'isPcntl')
-      && \method_exists($coroutine, 'createTask')
-      && \method_exists($coroutine, 'getUV')
-      && \method_exists($coroutine, 'schedule')
-      && \method_exists($coroutine, 'scheduleFiber')
-      && \method_exists($coroutine, 'ioStop')
-      && \method_exists($coroutine, 'fiberOn')
-      && \method_exists($coroutine, 'fiberOff')
+      && \is_object($object)
+      && \method_exists($object, 'addFuture')
+      && \method_exists($object, 'execute')
+      && \method_exists($object, 'executeTask')
+      && \method_exists($object, 'run')
+      && \method_exists($object, 'isPcntl')
+      && \method_exists($object, 'createTask')
+      && \method_exists($object, 'getUV')
+      && \method_exists($object, 'schedule')
+      && \method_exists($object, 'scheduleFiber')
+      && \method_exists($object, 'ioStop')
+      && \method_exists($object, 'fiberOn')
+      && \method_exists($object, 'fiberOff')
     );
+  }
+
+  public static function isHandler($object): bool
+  {
+    return \is_object($object) && \method_exists($object, 'executeTask') && \method_exists($object, 'isPcntl');
   }
 
   /**
    * Optionally set what the `Future` process `event` manager handle calls.
    *
-   * @param object|null $coroutine For external `Coroutine` class.
+   * @param object|null $loop Set custom event loop handler that has **executeTask()** and **isPcntl()** methods defined
    * @param callable|null $timedOutCallback
    * @param callable|null $finishCallback
    * @param callable|null $failCallback
    * @param callable|null $signalCallback
+   * @throws \Exception if invalid **$loop** object.
    */
   public function __construct(
-    $coroutine = null,
+    $loop = null,
     ?callable $timedOutCallback = null,
     ?callable $finishCallback = null,
     ?callable $failCallback = null,
     ?callable $signalCallback  = null
   ) {
 
-    if (self::hasLoop($coroutine)) {
-      Spawn::setup($coroutine->getUV());
+    if (self::isCoroutine($loop)) {
+      // @codeCoverageIgnoreStart
+      Spawn::setup($loop->getUV());
+      // @codeCoverageIgnoreEnd
     } else {
       Spawn::integrationMode();
     }
 
-    $this->coroutine = $coroutine;
+    $this->coroutine = $loop;
 
     $this->futures = new FutureHandler(
-      $coroutine,
+      $loop,
       (\is_callable($timedOutCallback) ? $timedOutCallback : [$this, 'markAsTimedOut']),
       (\is_callable($finishCallback) ? $finishCallback : [$this, 'markAsFinished']),
       (\is_callable($failCallback) ? $failCallback : [$this, 'markAsFailed']),
@@ -374,9 +382,9 @@ class Parallel implements ArrayAccess, ParallelInterface
     return isset($this->parallel[$offset]) ? $this->parallel[$offset] : null;
   }
 
-  public function offsetSet($offset, $value, int $timeout = 0): void
+  public function offsetSet($offset, $value, int $timeout = 0, $channel = null): void
   {
-    $this->add($value, $timeout);
+    $this->add($value, $timeout, $channel);
   }
 
   public function offsetUnset($offset): void

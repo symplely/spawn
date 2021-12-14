@@ -16,6 +16,45 @@ class ZParallelFallbackTest extends TestCase
         Spawn::setup(null, false, true, false);
     }
 
+    public function testIt_can_take_custom_event_loop()
+    {
+        $loop = new class
+        {
+            public function executeTask($task, $parameters = null)
+            {
+                if (\is_callable($task)) {
+                    $task($parameters);
+                }
+            }
+
+            public function isPcntl(): bool
+            {
+                return \extension_loaded('pcntl')
+                    && \function_exists('pcntl_async_signals')
+                    && \function_exists('posix_kill');
+            }
+        };
+
+        $this->assertTrue(Parallel::isHandler($loop));
+        $this->assertFalse(Parallel::isCoroutine($loop));
+        $this->assertFalse(Parallel::isHandler('loop'));
+
+        $parallel = new Parallel($loop);
+
+        $result = $parallel->wait();
+
+        $this->assertEmpty($result);
+        $this->assertSame($result, $parallel->results());
+    }
+
+    public function testIt_can_error_on_invalid_event_loop_()
+    {
+        $this->expectException(\Exception::class);
+        $this->expectExceptionMessageMatches('/Invalid "Coroutine" or custom "Event Loop" instance!/');
+
+        $parallel = new Parallel('loop');
+    }
+
     public function testIt_can_create_and_return_results()
     {
         $parallel = new Parallel();

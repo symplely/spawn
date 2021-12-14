@@ -574,7 +574,7 @@ if (!\function_exists('spawn')) {
   }
 
   /**
-   * Decodes and creates a `PHP` value from the **serialized** data.
+   * Decodes base64 and creates a `PHP` value from the **serialized** data.
    *
    * @param string $input
    *
@@ -614,8 +614,12 @@ if (!\function_exists('spawn')) {
    *
    * @codeCoverageIgnore
    */
-  function spawn_setup($loop, ?bool $isYield = true, bool $integrationMode = true, bool $useUv = true): void
-  {
+  function spawn_setup(
+    $loop = null,
+    ?bool $isYield = true,
+    ?bool $integrationMode = true,
+    ?bool $useUv = true
+  ): void {
     Spawn::setup($loop, $isYield, $integrationMode, $useUv);
   }
 }

@@ -8,12 +8,20 @@ use Async\Spawn\FutureInterface;
 interface ParallelInterface
 {
   /**
-   * Check for external `Coroutine` library availability.
+   * Check for external **Coroutine** library availability.
    *
-   * @param object|null $coroutine
+   * @param object $object
    * @return boolean
    */
-  public static function hasLoop($coroutine = null): bool;
+  public static function isCoroutine($object): bool;
+
+  /**
+   * Check for a **Event Loop** handler that has **executeTask()** and **isPcntl()** methods defined.
+   *
+   * @param object $object
+   * @return boolean
+   */
+  public static function isHandler($object): bool;
 
   /**
    * Will return an `Future` process `event` manager handle.
