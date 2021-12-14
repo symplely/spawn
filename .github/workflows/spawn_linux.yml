@@ -67,7 +67,7 @@ jobs:
         if: ${{ success() }} || ${{ failure() }}
         run: bash <(curl -s https://codecov.io/bash)
 
-  linux_php8.1:
+  linux_php81:
     name: Linux CI - no libuv
     runs-on: ubuntu-latest
     continue-on-error: true

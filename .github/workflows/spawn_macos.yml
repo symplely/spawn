@@ -70,7 +70,7 @@ jobs:
         with:
           file: ./coverage.xml # optional
 
-  macos_php8.1:
+  macos_php81:
     name: macOS CI
     runs-on: macos-latest
     continue-on-error: true

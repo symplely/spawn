@@ -74,7 +74,7 @@ jobs:
       with:
         file: ./coverage.xml # optional
 
-  windows_php8.1:
+  windows_php81:
     name: Windows CI - no libuv
     runs-on: windows-latest
     strategy:
