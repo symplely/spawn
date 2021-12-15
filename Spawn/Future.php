@@ -683,7 +683,7 @@ class Future implements FutureInterface
 
   public function getResult()
   {
-    global $___paralleling;
+    $user = Globals::get();
 
     if (\is_null($this->finalResult)) {
       $this->finalResult = $this->decode($this->lastResult);
@@ -692,7 +692,9 @@ class Future implements FutureInterface
         if (isset($paralleling) && \is_array($paralleling)) {
           unset($paralleling['GLOBALS']);
           unset($paralleling['results']);
-          $___paralleling = \is_array($___paralleling) ? \array_merge($___paralleling, $paralleling) : $paralleling;
+          $defined = \is_array($user) ? \array_merge($user, $paralleling) : $paralleling;
+          foreach ($defined as $key => $value)
+            Globals::set($key, $value);
         }
       }
     }

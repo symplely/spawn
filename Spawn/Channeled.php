@@ -63,8 +63,7 @@ class Channeled implements ChanneledInterface
     ?string $name = null,
     bool $anonymous = true
   ) {
-    global $___channeled___;
-    if ($this->capacity !== null && $___channeled___ === 'parallel')
+    if ($this->capacity !== null && Globals::isChannelling())
       $capacity = $this->capacity;
 
     if (($capacity < -1) || ($capacity == 0))
@@ -150,12 +149,10 @@ class Channeled implements ChanneledInterface
 
   public static function open(string $name): ChanneledInterface
   {
-    global $___channeled___;
-
     if (static::isChannel($name))
       return static::$channels[$name];
 
-    if ($___channeled___ === 'parallel')
+    if (Globals::isChannelling())
       return new static(-1, $name, false);
 
     static::throwExistence(\sprintf('channel named %s not found', $name));
@@ -260,13 +257,11 @@ class Channeled implements ChanneledInterface
 
   public function send($value): void
   {
-    global $___channeled___;
-
     if ($this->isClosed())
       static::throwClosed(\sprintf('channel(%s) closed', $this->name));
 
     if (
-      !isset($___channeled___) && null !== $value && $this->process === null && !\is_resource($value)
+      !Globals::isChannelling() && null !== $value && $this->process === null && !\is_resource($value)
       && ($this->capacity > $this->buffered->count() || $this->capacity == -1) && $this->type === 'buffered'
     ) {
       try {
@@ -329,10 +324,8 @@ class Channeled implements ChanneledInterface
 
   public function recv()
   {
-    global $___channeled___;
-
     if (
-      !isset($___channeled___) && $this->type === 'buffered'
+      !Globals::isChannelling() && $this->type === 'buffered'
       && $this->process === null && !$this->buffered->isEmpty()
     ) {
       try {

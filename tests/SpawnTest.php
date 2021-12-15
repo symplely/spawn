@@ -2,6 +2,7 @@
 
 namespace Async\Tests;
 
+use Async\Spawn\Globals;
 use Async\Spawn\Spawn;
 use Async\Spawn\SpawnError;
 use PHPUnit\Framework\TestCase;
@@ -346,7 +347,7 @@ class SpawnTest extends TestCase
     $this->assertInstanceOf(MyClass::class, $result);
     $this->assertTrue($result->property);
 
-    $global = paralleling_globals();
+    $global = Globals::get();
     $this->assertEquals($global['__testing'], 'helping');
   }
 

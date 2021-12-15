@@ -6,6 +6,7 @@ use Async\Spawn\Channeled;
 use Async\Spawn\ChanneledInterface;
 use Async\Spawn\Spawn;
 use Async\Spawn\FutureInterface;
+use Async\Spawn\Globals;
 use Async\Spawn\ParallelInterface;
 
 use function Opis\Closure\{serialize as serializing, unserialize as deserializing};
@@ -346,7 +347,8 @@ if (!\function_exists('spawn')) {
    */
   function parallel($task, ...$argv): FutureInterface
   {
-    global $___paralleling;
+    $___paralleling = Globals::get();
+
     $channel = null;
     foreach ($argv as $isChannel) {
       if ($isChannel instanceof ChanneledInterface) {
@@ -387,7 +389,7 @@ if (!\function_exists('spawn')) {
    */
   function paralleling(?\Closure $task = null, ?string $include = null, ...$args): FutureInterface
   {
-    global $___paralleling;
+    $___paralleling = Globals::get();
 
     $channel = null;
     foreach ($args as $isChannel) {
@@ -414,21 +416,9 @@ if (!\function_exists('spawn')) {
   }
 
   /**
-   * Returns an array of **Future** `user defined` *global* variables.
-   *
-   * @return array|null
-   */
-  function paralleling_globals(): ?array
-  {
-    global $___paralleling;
-
-    return $___paralleling;
-  }
-
-  /**
-   * Setup `user defined` global `key => value` pair to be transferred to `Future` **subprocess**.
+   * Setup `user defined` global `key => value` pair to be transferred to `Future` **child-process**.
    * - Can `include/require` an additional **file** to execute.
-   * - Also an indicator for a `Channel` that it has been started by `subprocess` Future.
+   * - Also an indicator for a `Channel` that it has been started by `child-process` Future.
    *
    * @param string $include additional file to execute
    * @param array|null $keyValue
@@ -436,7 +426,6 @@ if (!\function_exists('spawn')) {
    */
   function paralleling_setup(?string $include = null, ?array $keyValue = null): void
   {
-    global $___channeled___;
     if (!empty($include) && \is_string($include)) {
       require $include;
     }
@@ -445,7 +434,7 @@ if (!\function_exists('spawn')) {
       foreach ($keyValue as $key => $value)
         $GLOBALS[$key] = $value;
 
-    $___channeled___ = 'parallel';
+    Globals::channelling();
   }
 
   /**
