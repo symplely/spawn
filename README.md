@@ -2,9 +2,24 @@
 
 [![Linux](https://github.com/symplely/spawn/workflows/Linux/badge.svg)](https://github.com/symplely/spawn/actions?query=workflow%3ALinux)[![Windows](https://github.com/symplely/spawn/workflows/Windows/badge.svg)](https://github.com/symplely/spawn/actions?query=workflow%3AWindows)[![macOS](https://github.com/symplely/spawn/workflows/macOS/badge.svg)](https://github.com/symplely/spawn/actions?query=workflow%3AmacOS)[![codecov](https://codecov.io/gh/symplely/spawn/branch/master/graph/badge.svg)](https://codecov.io/gh/symplely/spawn)[![Codacy Badge](https://api.codacy.com/project/badge/Grade/56a6036fa1c849c88b6e52827cad32a8)](https://www.codacy.com/gh/symplely/spawn?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=symplely/spawn&amp;utm_campaign=Badge_Grade)[![Maintainability](https://api.codeclimate.com/v1/badges/7604b17b9ebf310ec94b/maintainability)](https://codeclimate.com/github/symplely/spawn/maintainability)
 
-An simply __`uv_spawn`__ wrapper API to _execute_ and _manage_ **sub-processes**, parallel/asynchronous PHP for Blocking I/O.
+An simply __`uv_spawn`__ or __`proc-open`__ wrapper API to _execute_ and _manage_ a **Pool** of **child-processes**, achieving parallel/asynchronous PHP for Blocking I/O.
 
-This package uses features of [`libuv`](https://github.com/libuv/libuv), the PHP extension [UV](https://github.com/bwoebi/php-uv), of the  **Node.js**  library. It's `uv_spawn` function is used to launch processes. The performance it a much better alternative to pcntl-extension, or the use of `proc_open`. This package will fallback to use [symfony/process], if `libuv` is not installed.
+## Table of Contents
+
+* [Installation](#installation)
+* [Usage](#usage)
+* [Channel: Transfer messages between Child and Parent](#channel:-transfer-messages-between-child-and-parent)
+* [Event hooks](#event-hooks)
+* [Parallel](#parallel)
+* [Parallel Configuration](#parallel-configuration)
+* [Behind the curtains](#behind-the-curtains)
+* [Differences with original author's "Spatie/Async"](#differences-with-original-author's-"Spatie/Async")
+* [How to integrate into your project/package](#how-to-integrate-into-your-project/package)
+* [Error handling](#error-handling)
+* [Contributing](#contributing)
+* [License](#license)
+
+This package uses features of [`libuv`](https://github.com/libuv/libuv), the PHP extension [ext-uv](https://github.com/amphp/ext-uv) of the  **Node.js**  library. It's `uv_spawn` function is used to launch processes. The performance it a much better alternative to pcntl-extension, or the use of `proc_open`. This package will fallback to use [symfony/process], if `libuv` is not installed.
 
 This package is part of our [symplely/coroutine](https://symplely.github.io/coroutine/) package for handling any **blocking i/o** process, that can not be handled by [**Coroutine**](https://symplely.github.io/coroutine/) natively.
 
@@ -45,7 +60,7 @@ For **Windows** there is good news, native *async* thru `libuv` has arrived.
 
 Windows builds for stable PHP versions are available [from PECL](https://pecl.php.net/package/uv).
 
-Directly download latest from https://windows.php.net/downloads/pecl/releases/uv/
+Directly download latest from <https://windows.php.net/downloads/pecl/releases/uv/>
 
 Extract `libuv.dll` to same directory as `PHP` binary executable, and extract `php_uv.dll` to `ext\` directory.
 
@@ -75,8 +90,10 @@ use Async\Spawn\Spawn;
 $future = \parallel($function, ...$args)
 // Shows output by default, turns on yield usage, can include additional file, and the Channel instance is extracted from args.
 $future = \paralleling($function, $includeFile, ...$args)
-// Or Does not show output by default and channel instance has to be explicitly passed ins.
+// Or Does not show output by default and channel instance has to be explicitly passed in.
 $future = \spawn($function, $timeout, $channel)
+// Or Show output by default and channel instance has to be explicitly passed in.
+$future = \spawning($function, $timeout, $channel)
 // Or
 $future = Spawn::create(function () use ($thing) {
     // Do a thing
@@ -87,19 +104,17 @@ $future = Spawn::create(function () use ($thing) {
         // Handle exception
 });
 
-\spawn_run($future);
-// Or
-\paralleling_run($future);
-// Or
-$future->run();
-
+// Wait for `Future` to terminate. Note this should only be executed for local testing only.
+// Use "How to integrate into your project/package" section instead.
 // Second option can be used to set to display child output, default is false
 \spawn_run($future, true);
-// Or
+// Or same as
 $future->displayOn()->run();
+// Or
+$future->run();
 ```
 
-## Channel - Transfer messages between `Child` and `Parent` process
+## Channel: Transfer messages between Child and Parent
 
 The feature has been completely redesigned to behave similar to **PHP** [ext-parallel](https://www.php.net/manual/en/philosophy.parallel.php) extension.
 
@@ -165,7 +180,7 @@ $future = Spawn::create(function () {
         // When an timeout is reached, it's caught and passed here.
     })
     ->progress(function ($type, $data) {
-        // Live progressing output: `$type, $data` is returned output by the Future process.
+        // Live progressing of output: `$type, $data` is returned by the Future process.
         // $type is `ERR` for stderr, or `OUT` for stdout.
     })
     ->signal($signal, function ($signal) {
@@ -186,98 +201,204 @@ $future = Spawn::create(function () {
     }
 );
 
-// To turn on to display child output.
+// To turn on displaying of child output.
 ->displayOn();
 
 // Stop displaying child output.
 ->displayOff();
 
-// Processes can be retried.
+// A `Future` process can be retried.
 ->restart();
 
+// Wait for `Future` to terminate. Note this should only be executed for local testing only.
+// Use "How to integrate into your project/package" section instead.
 ->run();
 ```
 
-## How to integrate into another project
+## Parallel
+
+The **Parallel** class is used to manage a Pool of `Future's`. The same _Event hooks_ and _Error handling_ are available.
 
 ```php
-/**
- * Setup for third party integration.
- *
- * @param \UVLoop|null $loop - Set UVLoop handle, this feature is only available when using `libuv`.
- * @param bool $isYield - Set/expects the launched sub processes to be called and using the `yield` keyword.
- * @param bool $integrationMode -Should `uv_spawn` package just set `future` process status, don't call callback handlers.
- * - The callbacks handlers are for this library standalone use.
- * - The `uv_spawn` preset callback will only set process status.
- * - This feature is for `Coroutine` package or any third party package.
- * @param bool $useUv - Turn **on/off** `uv_spawn` for child subprocess operations, will use **libuv** features,
- * if not **true** will use `proc_open` of **symfony/process**.
- *
- * @codeCoverageIgnore
- */
-spawn_setup($loop, $isYield, $integrationMode, $useUv);
+include 'vendor/autoload.php';
 
-// For checking and acting on each subprocess status use:
+use Async\Spawn\Parallel;
 
-/**
- * Check if the process has timeout (max. runtime).
- */
- ->isTimedOut();
+$parallel = new Parallel();
 
-/**
- * Call the timeout callbacks.
- */
-->triggerTimeout();
+foreach ($things as $thing) {
+        // the second argument `optional`, can set the maximum amount of time a process may take to finish in seconds.
+    $parallel->add(function () use ($thing) {
+        // Do a thing
+    }, $optional)->then(function ($output) {
+        // Handle success
+        // On success, `$output` is returned by the process or callable you passed to the queue.
+    })->catch(function (\Throwable $exception) {
+        // Handle exception
+        // When an exception is thrown from within a process, it's caught and passed here.
+    });
+}
 
-/**
- * Checks if the process received a signal.
- */
-->isSignaled();
+// Wait for Parallel `Future` Pool to terminate. Note this should only be executed for local testing only.
+// Use "How to integrate into your project/package" section instead.
+$parallel->wait();
+```
 
-/**
- * Call the signal callbacks.
- */
-->triggerSignal($signal);
+### Parallel Configuration
 
-/**
- * Checks if the process is currently running.
- */
-->isRunning();
+You're free to create as many parallel process pools as you want, each parallel pool has its own queue of processes it will handle.
 
-/**
- * Call the progress callbacks on the Future child subprocess output in real time.
- */
-->triggerProgress($type, $buffer);
+A parallel pool is configurable by the developer:
 
-/**
- * Checks if the process ended successfully.
- */
-->isSuccessful();
+```php
+use Async\Spawn\Parallel;
 
-/**
- * Call the success callbacks.
- * @return mixed
- */
-->triggerSuccess();
+$parallel = (new Parallel())
 
-/**
- * Checks if the process is terminated.
- */
-->isTerminated();
+// The maximum amount of processes which can run simultaneously.
+    ->concurrency(20)
 
-/**
- * Call the error callbacks.
- * @throws \Exception if error callback array is empty
- */
-->triggerError();
+// Configure how long the loop should sleep before re-checking the process statuses in milliseconds.
+    ->sleepTime(50000);
+```
 
+## Behind the curtains
+
+This package using `uv_spawn`, and `proc_open` as a fallback, to create and manage a **pool** of child processes in PHP. By creating child processes on the fly, we're able to execute PHP scripts in parallel. This parallelism can improve performance significantly when dealing with multiple __Synchronous I/O__ tasks, which don't really need to wait for each other.
+
+By giving these tasks a separate process to run on, the underlying operating system can take care of running them in parallel.
+
+The `Parallel` class provided by this package takes care of handling as many processes as you want by scheduling and running them when it's possible. When multiple processes are spawned, each can have a separate time to completion.
+
+Waiting for all processes is done by using `uv_run`, or basic child process `polling` which will monitor until all processes are finished.
+
+When a process is **finished**, its _success_ event is triggered, which you can hook into with the `->then()` function.
+When a process **fails**, an _error_ event is triggered, which you can hook into with the `->catch()` function.
+When a process **times out**, an _timeout_ event is triggered, which you can hook into with the `->timeout()` function.
+
+Then the iterations will update that process's status and move on.
+
+## Differences with original author's "Spatie/Async"
+
+This package differs from original author's [spatie/async](https://github.com/spatie/async) implementations:
+
+* The `Runnable` class is **Future** with expanded capabilities.
+* The `Pool` class is **Parallel** with some features extracted into another class **FutureHandler**.
+* The `ParentRuntime` class is **Spawn** that can accept a `string` command line action to `execute`, returns a **Future**.
+* The `async` function is **spawn** with additional **spawning** that will _display_ any child process output.
+* Removed output limit, no timeout unless set per `Future`, added all _Symfony_ **Process** features.
+* Not `Linux` or `CLI` only, runs the same in **Web** environment under __Windows__ and __Apple macOS__ too.
+* Added a **Event Loop** library `libuv` support, it's now the main usage model, fallback to `proc-open` _Process_ if not installed.
+* **Libuv** allows more direct **Channel** message exchange, same is done with `proc-open` but is limited.
+
+**Todo:** Move in all [`ext-parallel`](https://www.php.net/manual/en/book.parallel.php) like functionality from external `Coroutine` library.
+
+> A previous [PR](https://github.com/spatie/async/pull/56) of a fork was submitted addressing real **Windows** support.
+
+## How to integrate into your project/package
+
+When you include this library into your project, you can't execute functions/methods `spawn_wait()`, `spawn_run()`, `wait()` or `run()` directly. They are for mainly testing this library locally. You will need to adapt to or create a custom _event loop_ routine.
+
+The **Parallel** class has a `getFutureHandler()` method that returns a **FutureHandler** instance.
+The **FutureHandler** has two methods `processing()` and `isEmpty()` that you will need to call within your custom loop routine. These two calls are the same ones the `wait()` method calls onto within a `while` loop with additional `sleepingTime()`.
+
+The `processing()` method will _monitor/check_ the **Future's** _state_ status and _execute_ any appropriate **event callback** handler.
+The **FutureHandler** class can _accept/handle_ a custom _Event Loop_ that has **`executeTask(event callback, future)`** and **`isPcntl()`** methods defined. The custom __Event Loop__ object should be supplied to **Parallel** instantiation.
+
+___A basic setup to add to your Event Loop___
+
+```php
+use Async\Spawn\Parallel;
+use Async\Spawn\FutureHandler;
+use Async\Spawn\FutureInterface;
+use Async\Spawn\ParallelInterface;
+
+class setupLoop
+{
+  /**
+   * @var Parallel
+   */
+  protected $parallel;
+
+  /**
+   * @var FutureHandler
+   */
+  protected $future = null;
+
+  public function __construct() {
+    $this->parallel = new Parallel($this);
+    $this->future = $this->parallel->getFutureHandler();
+  }
+
+  public function addFuture($callable, int $timeout = 0, bool $display = false, $channel = null): FutureInterface {
+    $future = $this->parallel->add($callable, $timeout, $channel);
+    return $display ? $future->displayOn() : $future;
+  }
+
+  public function getParallel(): ParallelInterface {
+    return $this->parallel;
+  }
+
+  /**
+   * Check for pending I/O events, signals, futures, streams/sockets/fd activity, timers or etc...
+   */
+  protected function hasEvents(): bool {
+    return !$this->future->isEmpty() || !$this->ActionEventsCheckers->isEmpty();
+  }
+
+  public function runLoop() {
+    while ($this->hasEvents()) {
+      $this->future->processing();
+      if ($this->waitForAction());
+        $this->DoEventActions();
+    }
+  }
+
+  public function executeTask($event, $parameters = null) {
+    $this->DoEventActions($event, $parameters);
+    // Or just
+    // if (\is_callable($event))
+       // $event($parameters);
+  }
+
+  public function isPcntl(): bool {}
+}
+```
+
+This library uses [opis/closure](https://github.com/opis/closure) package for `closure/callable` serialization. For any *function* or *class* methods to be accessible in a `Future` child process you must make changes to your `composer.json` to insure it's picked up. The `composer.json` file should contain a pointer to some file with functions you always need, and insure all new classes/namespaces are within added. You can't just make local **named** `functions` or `classes` on the fly and expect them to be available.
+
+```json
+// composer.json
+"autoload": {
+    "files": [
+        "Extra/functions.php"
+    ],
+    "psr-4": {
+        "Name\\Space\\": ["Folder/"],
+        "Extra\\Name\\Spaces\\": ["Extra/"]
+    }
+},
+```
+
+```php
+// functions.php
+if (!\function_exists('___marker')) {
+  //
+  // All additional extra functions needed in a `Future` process...
+  //
+
+  function ___marker()
+  {
+    return true;
+  }
+}
 ```
 
 ## Error handling
 
 If an `Exception` or `Error` is thrown from within a child process, it can be caught per process by specifying a callback in the `->catch()` method.
 
-If there's no error handler added, the error will be thrown in the parent process when calling `spawn_run()` or `$future->run()`.
+If there's no error handler added, the error will be thrown in the parent process.
 
 If the child process would unexpectedly stop without throwing an `Throwable`, the output written to `stderr` will be wrapped and thrown as `Async\Spawn\SpawnError` in the parent process.
 

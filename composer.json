@@ -1,16 +1,19 @@
 {
     "name": "symplely/spawn",
-    "description": "An simply `uv_spawn` wrapper API to execute and manage sub-processes, parallel/asynchronous PHP for Blocking I/O.",
+    "description": "An simply `uv_spawn` or `proc-open` wrapper API to execute and manage a Pool of child-processes, achieving parallel/asynchronous PHP for Blocking I/O.",
     "keywords": [
         "process",
+        "child-process",
+        "proc-open",
         "parallel",
         "spawn",
         "uv_spawn",
         "libuv",
         "command",
         "task",
-        "sub process",
-        "async"
+        "async",
+        "future",
+        "asynchronous"
     ],
     "homepage": "https://github.com/symplely/spawn",
     "type": "library",
