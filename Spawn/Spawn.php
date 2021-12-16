@@ -8,7 +8,7 @@ use Closure;
 use Async\Spawn\Future;
 use Async\Spawn\Process;
 use Async\Spawn\FutureInterface;
-use Opis\Closure\SerializableClosure;
+use Async\Closure\SerializableClosure;
 
 /**
  * This class is responsible for _initializing_ and _detection_ of which routine is used
@@ -214,7 +214,7 @@ class Spawn
             $task = new SerializableClosure($task);
         }
 
-        return \base64_encode(\Opis\Closure\serialize($task));
+        return \serializer($task);
     }
 
     /**
@@ -228,7 +228,7 @@ class Spawn
      */
     public static function decodeTask(string $task)
     {
-        return \Opis\Closure\unserialize(\base64_decode($task));
+        return \deserializer($task);
     }
 
     /**

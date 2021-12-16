@@ -3,7 +3,7 @@
 namespace Async\Tests;
 
 use Async\Spawn\Spawn;
-use Opis\Closure\SerializableClosure;
+use Async\Closure\SerializableClosure;
 use PHPUnit\Framework\TestCase;
 
 class ContainerTest extends TestCase
@@ -21,9 +21,9 @@ class ContainerTest extends TestCase
 
         $autoload = __DIR__ . \DS . '..' . \DS . 'vendor' . \DS . 'autoload.php';
 
-        $serializedClosure = \base64_encode(\Opis\Closure\serialize(new SerializableClosure(function () {
+        $serializedClosure = \serializer(new SerializableClosure(function () {
             echo 'child';
-        })));
+        }));
 
         $future = Spawn::create(['php', $bootstrap, $autoload, $serializedClosure]);
 

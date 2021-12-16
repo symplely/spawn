@@ -29,7 +29,7 @@ try {
     throw $error;
   }
 
-  $task = \spawn_decode($serializedClosure);
+  $task = \deserializer($serializedClosure);
 
   $output = $task(\spawn_channel());
 

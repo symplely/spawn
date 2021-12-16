@@ -26,7 +26,6 @@
     ],
     "require": {
         "php": ">7.1",
-        "opis/closure": "^3.6.2",
         "symfony/process": ">4.0.0"
     },
     "autoload": {
@@ -34,7 +33,12 @@
             "Spawn/Core.php"
         ],
         "psr-4": {
-            "Async\\Spawn\\": "Spawn/"
+            "Async\\Spawn\\": [
+                "Spawn/"
+            ],
+            "Async\\Closure\\": [
+                "Spawn/Closure/"
+            ]
         }
     },
     "require-dev": {

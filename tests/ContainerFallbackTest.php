@@ -4,7 +4,7 @@ namespace Async\Tests;
 
 use Async\Spawn\Spawn;
 use Async\Spawn\Process;
-use Opis\Closure\SerializableClosure;
+use Async\Closure\SerializableClosure;
 use PHPUnit\Framework\TestCase;
 
 class ContainerFallbackTest extends TestCase
@@ -20,9 +20,9 @@ class ContainerFallbackTest extends TestCase
 
         $autoload = __DIR__ . \DS . '..' . \DS . 'vendor' . \DS . 'autoload.php';
 
-        $serializedClosure = \base64_encode(\Opis\Closure\serialize(new SerializableClosure(function () {
+        $serializedClosure = \serializer(new SerializableClosure(function () {
             echo 'child';
-        })));
+        }));
         $future = new Process(explode(" ", "php {$bootstrap} {$autoload} {$serializedClosure}"));
 
         $future->start();

@@ -29,13 +29,10 @@ try {
     throw $error;
   }
 
-  $task = \spawn_decode($serializedClosure);
+  $task = \deserializer($serializedClosure);
   $results = $task(\spawn_channel());
 
   \usleep(2000);
-
-  if (isset($GLOBALS['__coroutine__']))
-    unset($GLOBALS['__coroutine__']);
 
   unset($GLOBALS['_GET'], $GLOBALS['_POST'], $GLOBALS['_COOKIE'], $GLOBALS['_FILES']);
   unset($GLOBALS['_ENV'], $GLOBALS['_REQUEST'], $GLOBALS['_SERVER'], $GLOBALS['argc']);
