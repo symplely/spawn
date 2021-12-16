@@ -9,14 +9,13 @@ namespace Async\Closure;
 
 use Closure;
 use Async\Closure\SecurityException;
-use Serializable;
 use SplObjectStorage;
 use ReflectionObject;
 
 /**
  * Provides a wrapper for serialization of closures
  */
-class SerializableClosure implements Serializable
+class SerializableClosure
 {
     /**
      * @var Closure Wrapped closure
@@ -107,15 +106,16 @@ class SerializableClosure implements Serializable
      */
     public function __invoke()
     {
-        return call_user_func_array($this->closure, func_get_args());
+        return \call_user_func_array($this->closure, \func_get_args());
     }
 
     /**
      * Implementation of Serializable::serialize()
      *
      * @return  string  The serialized closure
+     * @return array
      */
-    public function serialize()
+    public function __serialize()
     {
         if ($this->scope === null) {
             $this->scope = new ClosureScope();
@@ -148,7 +148,7 @@ class SerializableClosure implements Serializable
 
         $this->mapByReference($use);
 
-        $ret = \serialize(array(
+        $closure = \serialize(array(
             'use' => $use,
             'function' => $code,
             'scope' => $scope,
@@ -157,15 +157,32 @@ class SerializableClosure implements Serializable
         ));
 
         if (static::$securityProvider !== null) {
-            $data = static::$securityProvider->sign($ret);
-            $ret =  '@' . $data['hash'] . '.' . $data['closure'];
+            $data = static::$securityProvider->sign($closure);
+        } else {
+            $data = array('closure' => $closure);
         }
 
         if (!--$this->scope->serializations && !--$this->scope->toserialize) {
             $this->scope = null;
         }
 
-        return $ret;
+        return $data;
+    }
+
+    /**
+     * Implementation of Serializable::serialize()
+     *
+     * @return  string  The serialized closure
+     */
+    public function serialize()
+    {
+        $data = $this->__serialize();
+
+        if (isset($data['hash'])) {
+            return \sprintf('@%s.%s', $data['hash'], $data['closure']);
+        }
+
+        return $data['closure'];
     }
 
     /**
@@ -184,61 +201,21 @@ class SerializableClosure implements Serializable
      *
      * @param   string $data Serialized data
      * @throws SecurityException
+     * @return void
      */
-    public function unserialize($data)
+    public function __unserialize(array $data)
     {
         ClosureStream::register();
 
         if (static::$securityProvider !== null) {
-            if ($data[0] !== '@') {
-                throw new SecurityException("The serialized closure is not signed. " .
-                    "Make sure you use a security provider for both serialization and unserialization.");
-            }
-
-            if ($data[1] !== '{') {
-                $separator = strpos($data, '.');
-                if ($separator === false) {
-                    throw new SecurityException('Invalid signed closure');
-                }
-                $hash = substr($data, 1, $separator - 1);
-                $closure = substr($data, $separator + 1);
-
-                $data = ['hash' => $hash, 'closure' => $closure];
-
-                unset($hash, $closure);
-            } else {
-                $data = json_decode(substr($data, 1), true);
-            }
-
-            if (!is_array($data) || !static::$securityProvider->verify($data)) {
+            if (!\is_array($data) || !static::$securityProvider->verify($data)) {
                 throw new SecurityException("Your serialized closure might have been modified and it's unsafe to be unserialized. " .
                     "Make sure you use the same security provider, with the same settings, " .
                     "both for serialization and unserialization.");
             }
-
-            $data = $data['closure'];
-        } elseif ($data[0] === '@') {
-            if ($data[1] !== '{') {
-                $separator = strpos($data, '.');
-                if ($separator === false) {
-                    throw new SecurityException('Invalid signed closure');
-                }
-                $hash = substr($data, 1, $separator - 1);
-                $closure = substr($data, $separator + 1);
-
-                $data = ['hash' => $hash, 'closure' => $closure];
-
-                unset($hash, $closure);
-            } else {
-                $data = json_decode(substr($data, 1), true);
-            }
-
-            if (!is_array($data) || !isset($data['closure']) || !isset($data['hash'])) {
-                throw new SecurityException('Invalid signed closure');
-            }
-
-            $data = $data['closure'];
         }
+
+        $data = $data['closure'];
 
         $this->code = \unserialize($data);
 
@@ -251,7 +228,7 @@ class SerializableClosure implements Serializable
             $this->scope = new ClosureScope();
             $this->code['use'] = $this->resolveUseVariables($this->code['use']);
             $this->mapPointers($this->code['use']);
-            extract($this->code['use'], EXTR_OVERWRITE | EXTR_REFS);
+            \extract($this->code['use'], EXTR_OVERWRITE | EXTR_REFS);
             $this->scope = null;
         }
 
@@ -270,6 +247,54 @@ class SerializableClosure implements Serializable
         }
 
         $this->code = $this->code['function'];
+    }
+
+    /**
+     * Implementation of Serializable::unserialize()
+     *
+     * @param   string $data Serialized data
+     * @throws SecurityException
+     */
+    public function unserialize($data)
+    {
+        if (static::$securityProvider !== null) {
+            if ($data[0] !== '@') {
+                throw new SecurityException("The serialized closure is not signed. " .
+                    "Make sure you use a security provider for both serialization and unserialization.");
+            }
+
+            if ($data[1] !== '{') {
+                $separator = \strpos($data, '.');
+                if ($separator === false) {
+                    throw new SecurityException('Invalid signed closure');
+                }
+                $hash = \substr($data, 1, $separator - 1);
+                $closure = \substr($data, $separator + 1);
+
+                $this->__unserialize(['hash' => $hash, 'closure' => $closure]);
+            } else {
+                $this->__unserialize(\json_decode(\substr($data, 1), true));
+            }
+        } elseif ($data[0] === '@') {
+            if ($data[1] !== '{') {
+                $separator = \strpos($data, '.');
+                if ($separator === false) {
+                    throw new SecurityException('Invalid signed closure');
+                }
+                $hash = \substr($data, 1, $separator - 1);
+                $closure = \substr($data, $separator + 1);
+
+                $this->__unserialize(['hash' => $hash, 'closure' => $closure]);
+            } else {
+                $data = \json_decode(\substr($data, 1), true);
+                if (!\is_array($data)) {
+                    throw new SecurityException('Invalid signed closure');
+                }
+                $this->__unserialize($data);
+            }
+        } else {
+            $this->__unserialize(['closure' => $data]);
+        }
     }
 
     /**
@@ -375,7 +400,7 @@ class SerializableClosure implements Serializable
 
         if ($data instanceof Closure) {
             $data = static::from($data);
-        } elseif (is_array($data)) {
+        } elseif (\is_array($data)) {
             if (isset($data[self::ARRAY_RECURSIVE_KEY])) {
                 return;
             }
@@ -398,7 +423,7 @@ class SerializableClosure implements Serializable
                 static::wrapClosures($value, $storage);
             }
             unset($value);
-        } elseif (is_object($data) && !$data instanceof static) {
+        } elseif (\is_object($data) && !$data instanceof static) {
             if (isset($storage[$data])) {
                 $data = $storage[$data];
                 return;
@@ -424,7 +449,7 @@ class SerializableClosure implements Serializable
                         continue;
                     }
                     $value = $property->getValue($instance);
-                    if (is_array($value) || is_object($value)) {
+                    if (\is_array($value) || \is_object($value)) {
                         static::wrapClosures($value, $storage);
                     }
                     $property->setValue($data, $value);
@@ -448,7 +473,7 @@ class SerializableClosure implements Serializable
 
         if ($data instanceof static) {
             $data = $data->getClosure();
-        } elseif (is_array($data)) {
+        } elseif (\is_array($data)) {
             if (isset($data[self::ARRAY_RECURSIVE_KEY])) {
                 return;
             }
@@ -468,7 +493,7 @@ class SerializableClosure implements Serializable
             foreach ($data as &$property) {
                 static::unwrapClosures($property, $storage);
             }
-        } elseif (is_object($data) && !($data instanceof Closure)) {
+        } elseif (\is_object($data) && !($data instanceof Closure)) {
             if (isset($storage[$data])) {
                 return;
             }
@@ -488,7 +513,7 @@ class SerializableClosure implements Serializable
                         continue;
                     }
                     $value = $property->getValue($data);
-                    if (is_array($value) || is_object($value)) {
+                    if (\is_array($value) || \is_object($value)) {
                         static::unwrapClosures($value, $storage);
                         $property->setValue($data, $value);
                     }
@@ -522,7 +547,7 @@ class SerializableClosure implements Serializable
 
         if ($data instanceof static) {
             $data = &$data->closure;
-        } elseif (is_array($data)) {
+        } elseif (\is_array($data)) {
             if (isset($data[self::ARRAY_RECURSIVE_KEY])) {
                 return;
             }
@@ -548,12 +573,12 @@ class SerializableClosure implements Serializable
             foreach ($data as $key => &$value) {
                 if ($value instanceof SelfReference && $value->hash === $this->code['self']) {
                     $data->{$key} = &$this->closure;
-                } elseif (is_array($value) || is_object($value)) {
+                } elseif (\is_array($value) || \is_object($value)) {
                     $this->mapPointers($value);
                 }
             }
             unset($value);
-        } elseif (is_object($data) && !($data instanceof Closure)) {
+        } elseif (\is_object($data) && !($data instanceof Closure)) {
             if (isset($scope[$data])) {
                 return;
             }
@@ -578,7 +603,7 @@ class SerializableClosure implements Serializable
                             'property' => $property,
                             'object' => $item instanceof SelfReference ? $this : $item,
                         );
-                    } elseif (is_array($item) || is_object($item)) {
+                    } elseif (\is_array($item) || \is_object($item)) {
                         $this->mapPointers($item);
                         $property->setValue($data, $item);
                     }
@@ -615,7 +640,7 @@ class SerializableClosure implements Serializable
             }
 
             $data = $this->scope[$data] = $instance;
-        } elseif (is_array($data)) {
+        } elseif (\is_array($data)) {
             if (isset($data[self::ARRAY_RECURSIVE_KEY])) {
                 return;
             }
@@ -640,7 +665,7 @@ class SerializableClosure implements Serializable
                 $this->mapByReference($value);
             }
             unset($value);
-        } elseif (is_object($data) && !$data instanceof SerializableClosure) {
+        } elseif (\is_object($data) && !$data instanceof SerializableClosure) {
             if (isset($this->scope[$data])) {
                 $data = $this->scope[$data];
                 return;
@@ -667,7 +692,7 @@ class SerializableClosure implements Serializable
                         continue;
                     }
                     $value = $property->getValue($instance);
-                    if (is_array($value) || is_object($value)) {
+                    if (\is_array($value) || \is_object($value)) {
                         $this->mapByReference($value);
                     }
                     $property->setValue($data, $value);
