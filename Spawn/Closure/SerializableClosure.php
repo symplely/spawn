@@ -139,7 +139,7 @@ class SerializableClosure
             }
         }
 
-        $this->reference = spl_object_hash($this->closure);
+        $this->reference = \spl_object_hash($this->closure);
 
         $this->scope[$this->closure] = $this;
 
@@ -172,17 +172,78 @@ class SerializableClosure
     /**
      * Implementation of Serializable::serialize()
      *
-     * @return  string  The serialized closure
+     * @return string The serialized closure
      */
     public function serialize()
     {
-        $data = $this->__serialize();
+        if ((float) \phpversion() >= 7.4) {
+            $data = $this->__serialize();
+            if (isset($data['hash'])) {
+                return \sprintf('@%s.%s', $data['hash'], $data['closure']);
+            }
 
-        if (isset($data['hash'])) {
-            return \sprintf('@%s.%s', $data['hash'], $data['closure']);
+            return $data['closure'];
+        } else {
+            return $this->serializer();
+        }
+    }
+
+    /**
+     * Implementation of Serializable::serialize()
+     *
+     * @return string The serialized closure
+     */
+    public function serializer()
+    {
+        if ($this->scope === null) {
+            $this->scope = new ClosureScope();
+            $this->scope->toserialize++;
         }
 
-        return $data['closure'];
+        $this->scope->serializations++;
+
+        $scope = $object = null;
+        $reflector = $this->getReflector();
+
+        if ($reflector->isBindingRequired()) {
+            $object = $reflector->getClosureThis();
+            static::wrapClosures($object, $this->scope);
+            if ($scope = $reflector->getClosureScopeClass()) {
+                $scope = $scope->name;
+            }
+        } else {
+            if ($scope = $reflector->getClosureScopeClass()) {
+                $scope = $scope->name;
+            }
+        }
+
+        $this->reference = \spl_object_hash($this->closure);
+
+        $this->scope[$this->closure] = $this;
+
+        $use = $this->transformUseVariables($reflector->getUseVariables());
+        $code = $reflector->getCode();
+
+        $this->mapByReference($use);
+
+        $ret = \serialize(array(
+            'use' => $use,
+            'function' => $code,
+            'scope' => $scope,
+            'this' => $object,
+            'self' => $this->reference,
+        ));
+
+        if (static::$securityProvider !== null) {
+            $data = static::$securityProvider->sign($ret);
+            $ret =  '@' . $data['hash'] . '.' . $data['closure'];
+        }
+
+        if (!--$this->scope->serializations && !--$this->scope->toserialize) {
+            $this->scope = null;
+        }
+
+        return $ret;
     }
 
     /**
@@ -252,11 +313,65 @@ class SerializableClosure
     /**
      * Implementation of Serializable::unserialize()
      *
-     * @param   string $data Serialized data
+     * @param string $data Serialized data
      * @throws SecurityException
      */
     public function unserialize($data)
     {
+        if (((float) \phpversion() >= 7.4)) {
+            if (static::$securityProvider !== null) {
+                if ($data[0] !== '@') {
+                    throw new SecurityException("The serialized closure is not signed. " .
+                        "Make sure you use a security provider for both serialization and unserialization.");
+                }
+
+                if ($data[1] !== '{') {
+                    $separator = \strpos($data, '.');
+                    if ($separator === false) {
+                        throw new SecurityException('Invalid signed closure');
+                    }
+                    $hash = \substr($data, 1, $separator - 1);
+                    $closure = \substr($data, $separator + 1);
+
+                    $this->__unserialize(['hash' => $hash, 'closure' => $closure]);
+                } else {
+                    $this->__unserialize(\json_decode(\substr($data, 1), true));
+                }
+            } elseif ($data[0] === '@') {
+                if ($data[1] !== '{') {
+                    $separator = \strpos($data, '.');
+                    if ($separator === false) {
+                        throw new SecurityException('Invalid signed closure');
+                    }
+                    $hash = \substr($data, 1, $separator - 1);
+                    $closure = \substr($data, $separator + 1);
+
+                    $this->__unserialize(['hash' => $hash, 'closure' => $closure]);
+                } else {
+                    $data = \json_decode(\substr($data, 1), true);
+                    if (!\is_array($data)) {
+                        throw new SecurityException('Invalid signed closure');
+                    }
+                    $this->__unserialize($data);
+                }
+            } else {
+                $this->__unserialize(['closure' => $data]);
+            }
+        } else {
+            $this->deserializer($data);
+        }
+    }
+
+    /**
+     * Implementation of Serializable::unserialize()
+     *
+     * @param string $data Serialized data
+     * @throws SecurityException
+     */
+    public function deserializer($data)
+    {
+        ClosureStream::register();
+
         if (static::$securityProvider !== null) {
             if ($data[0] !== '@') {
                 throw new SecurityException("The serialized closure is not signed. " .
@@ -271,10 +386,20 @@ class SerializableClosure
                 $hash = \substr($data, 1, $separator - 1);
                 $closure = \substr($data, $separator + 1);
 
-                $this->__unserialize(['hash' => $hash, 'closure' => $closure]);
+                $data = ['hash' => $hash, 'closure' => $closure];
+
+                unset($hash, $closure);
             } else {
-                $this->__unserialize(\json_decode(\substr($data, 1), true));
+                $data = \json_decode(\substr($data, 1), true);
             }
+
+            if (!\is_array($data) || !static::$securityProvider->verify($data)) {
+                throw new SecurityException("Your serialized closure might have been modified and it's unsafe to be unserialized. " .
+                    "Make sure you use the same security provider, with the same settings, " .
+                    "both for serialization and unserialization.");
+            }
+
+            $data = $data['closure'];
         } elseif ($data[0] === '@') {
             if ($data[1] !== '{') {
                 $separator = \strpos($data, '.');
@@ -284,17 +409,50 @@ class SerializableClosure
                 $hash = \substr($data, 1, $separator - 1);
                 $closure = \substr($data, $separator + 1);
 
-                $this->__unserialize(['hash' => $hash, 'closure' => $closure]);
+                $data = ['hash' => $hash, 'closure' => $closure];
+
+                unset($hash, $closure);
             } else {
                 $data = \json_decode(\substr($data, 1), true);
-                if (!\is_array($data)) {
-                    throw new SecurityException('Invalid signed closure');
-                }
-                $this->__unserialize($data);
             }
-        } else {
-            $this->__unserialize(['closure' => $data]);
+
+            if (!\is_array($data) || !isset($data['closure']) || !isset($data['hash'])) {
+                throw new SecurityException('Invalid signed closure');
+            }
+
+            $data = $data['closure'];
         }
+
+        $this->code = \unserialize($data);
+
+        // unset data
+        unset($data);
+
+        $this->code['objects'] = array();
+
+        if ($this->code['use']) {
+            $this->scope = new ClosureScope();
+            $this->code['use'] = $this->resolveUseVariables($this->code['use']);
+            $this->mapPointers($this->code['use']);
+            \extract($this->code['use'], EXTR_OVERWRITE | EXTR_REFS);
+            $this->scope = null;
+        }
+
+        $this->closure = include(ClosureStream::STREAM_PROTO . '://' . $this->code['function']);
+
+        if ($this->code['this'] === $this) {
+            $this->code['this'] = null;
+        }
+
+        $this->closure = $this->closure->bindTo($this->code['this'], $this->code['scope']);
+
+        if (!empty($this->code['objects'])) {
+            foreach ($this->code['objects'] as $item) {
+                $item['property']->setValue($item['instance'], $item['object']->getClosure());
+            }
+        }
+
+        $this->code = $this->code['function'];
     }
 
     /**
