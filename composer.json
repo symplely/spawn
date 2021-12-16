@@ -30,7 +30,8 @@
     },
     "autoload": {
         "files": [
-            "Spawn/Core.php"
+            "Spawn/Core.php",
+            "Spawn/Closure/functions.php"
         ],
         "psr-4": {
             "Async\\Spawn\\": [
