@@ -12,11 +12,12 @@ use Async\Closure\SecurityException;
 use Async\Closure\ReflectionClosure;
 use SplObjectStorage;
 use ReflectionObject;
+use Serializable;
 
 /**
  * Provides a wrapper for serialization of closures
  */
-class SerializableClosure
+class SerializableClosure implements Serializable
 {
     /**
      * @var Closure Wrapped closure

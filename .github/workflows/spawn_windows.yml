@@ -37,6 +37,8 @@ jobs:
         copy php_uv.dll ext\php_uv.dll
         del php_uv.dll
         del php_uv-0.2.4-7.3-ts-vc15-x64.zip
+        echo "extension=uv" >> php.ini
+        php -m
     - name: Install dependencies
       run: composer install
     - name: Test with phpunit
