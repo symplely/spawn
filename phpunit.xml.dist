@@ -1,12 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<phpunit bootstrap="vendor/autoload.php"
-		 backupGlobals="false"
-         backupStaticAttributes="false"
-         colors="true"
-         convertErrorsToExceptions="true"
-         convertNoticesToExceptions="true"
-         convertWarningsToExceptions="true"
-         stopOnFailure="false">
+<phpunit bootstrap="vendor/autoload.php" backupGlobals="false" backupStaticAttributes="false" colors="true" convertErrorsToExceptions="true" convertNoticesToExceptions="true" convertWarningsToExceptions="true" stopOnFailure="false">
 
     <testsuites>
         <testsuite name="Spawn Test Suite">
@@ -19,6 +12,7 @@
         <whitelist>
             <directory suffix=".php">Spawn/</directory>
             <exclude>
+                <directory>Spawn/Clocsure/</directory>
                 <file>./Spawn/Container.php</file>
                 <file>./Spawn/UVContainer.php</file>
                 <file>./Spawn/UV.php</file>
