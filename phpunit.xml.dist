@@ -12,12 +12,12 @@
         <whitelist>
             <directory suffix=".php">Spawn/</directory>
             <exclude>
-                <directory suffix=".php">Spawn/Clocsure/</directory>
+                <directory suffix=".php">Spawn/Closure/</directory>
                 <file>./Spawn/Container.php</file>
                 <file>./Spawn/UVContainer.php</file>
-                <file>./Spawn/UV.php</file>
-                <file>./Spawn/UVFunctions.php</file>
-                <file>./Spawn/UVHandles.php</file>
+                <file>./Spawn/Uv/UV.php</file>
+                <file>./Spawn/Uv/UVFunctions.php</file>
+                <file>./Spawn/Uv/UVHandles.php</file>
             </exclude>
         </whitelist>
     </filter>

@@ -1,4 +1,5 @@
 ignore:
   - "tests/."
   - "vendor/."
-  - "Spawn/Clocsure/."
+  - "examples/."
+  - "Spawn/Closure/."
