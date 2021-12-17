@@ -23,8 +23,8 @@ jobs:
       uses: shivammathur/setup-php@v2
       with:
         php-version: '7.3'
-        tools: pecl
         extensions: mbstring, simplexml, curl, dom, sockets, fileinfo, openssl, xdebug, uv-beta
+        ini-values: extension=uv
         coverage: xdebug
       env:
         PHPTS: ts # specify ts or nts
@@ -37,7 +37,6 @@ jobs:
         copy php_uv.dll ext\php_uv.dll
         del php_uv.dll
         del php_uv-0.2.4-7.3-ts-vc15-x64.zip
-        echo "extension=uv" >> php.ini
         php -m
     - name: Install dependencies
       run: composer install
