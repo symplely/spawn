@@ -8,7 +8,7 @@ An simply __`uv_spawn`__ or __`proc-open`__ wrapper API to _execute_ and _manage
 
 * [Installation](#installation)
 * [Usage](#usage)
-* [Channel: Transfer messages between Child and Parent](#channel:-transfer-messages-between-child-and-parent)
+* [Channels Transfer messages between Child and Parent](#channels-transfer-messages-between-child-and-parent)
 * [Event hooks](#event-hooks)
 * [Parallel](#parallel)
 * [Parallel Configuration](#parallel-configuration)
@@ -114,7 +114,7 @@ $future->displayOn()->run();
 $future->run();
 ```
 
-## Channel: Transfer messages between Child and Parent
+## Channels Transfer messages between Child and Parent
 
 The feature has been completely redesigned to behave similar to **PHP** [ext-parallel](https://www.php.net/manual/en/philosophy.parallel.php) extension.
 
