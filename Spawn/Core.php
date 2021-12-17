@@ -10,8 +10,6 @@ use Async\Spawn\Globals;
 use Async\Spawn\ParallelInterface;
 use Async\Closure\SerializableClosure;
 
-use function Async\Closure\{serialize as serializing, unserialize as deserializing};
-
 if (!\defined('DS'))
   \define('DS', \DIRECTORY_SEPARATOR);
 
@@ -560,7 +558,11 @@ if (!\function_exists('spawn')) {
    */
   function serializer($input)
   {
-    return \base64_encode(@serializing($input));
+    SerializableClosure::enterContext();
+    SerializableClosure::wrapClosures($input);
+    $input = @\serialize($input);
+    SerializableClosure::exitContext();
+    return \base64_encode($input);
   }
 
   /**
@@ -573,7 +575,13 @@ if (!\function_exists('spawn')) {
    */
   function deserializer($input)
   {
-    return @deserializing(\base64_decode($input));
+    $input = \base64_decode($input);
+    SerializableClosure::enterContext();
+    $data = @\unserialize($input);
+    SerializableClosure::unwrapClosures($data);
+    SerializableClosure::exitContext();
+
+    return $data;
   }
 
   /**

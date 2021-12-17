@@ -9,6 +9,7 @@ namespace Async\Closure;
 
 use Closure;
 use Async\Closure\SecurityException;
+use Async\Closure\ReflectionClosure;
 use SplObjectStorage;
 use ReflectionObject;
 
