@@ -195,7 +195,7 @@ class SerializableClosure implements Serializable
      *
      * @return string The serialized closure
      */
-    public function serializer()
+    protected function serializer()
     {
         if ($this->scope === null) {
             $this->scope = new ClosureScope();
@@ -370,7 +370,7 @@ class SerializableClosure implements Serializable
      * @param string $data Serialized data
      * @throws SecurityException
      */
-    public function deserializer($data)
+    protected function deserializer($data)
     {
         ClosureStream::register();
 
