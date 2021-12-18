@@ -39,13 +39,16 @@ interface FutureInterface
 
   /**
    * Start the `Future` process and wait to terminate.
+   * - Note this should only be executed for local testing only.
    *
    * @param bool $useYield - should we use generator callback functions
+   * @return mixed
    */
   public function run(bool $useYield = false);
 
   /**
    * Return an generator that can start the `Future` process and wait to terminate.
+   * - Note this should only be executed for local testing only.
    *
    * @return \Generator
    */
@@ -64,9 +67,12 @@ interface FutureInterface
 
   /**
    * Waits for all processes to terminate.
+   * - Note this should only be executed for local testing only.
    *
    * @param int $waitTimer - Halt time in micro seconds
    * @param bool $useYield - should we use generator callback functions
+   *
+   * @return mixed
    */
   public function wait($waitTimer = 1000, bool $useYield = false);
 

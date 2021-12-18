@@ -415,12 +415,15 @@ if (!\function_exists('spawn')) {
   }
 
   /**
+   * This function is only executed in an actual _running_ `Future` **child-process**.
    * Setup `user defined` global `key => value` pair to be transferred to `Future` **child-process**.
    * - Can `include/require` an additional **file** to execute.
    * - Also an indicator for a `Channel` that it has been started by `child-process` Future.
    *
    * @param string $include additional file to execute
    * @param array|null $keyValue
+   * @internal
+   *
    * @return void
    */
   function paralleling_setup(?string $include = null, ?array $keyValue = null): void
@@ -438,10 +441,13 @@ if (!\function_exists('spawn')) {
 
   /**
    * Start the `Future` process and wait to terminate, and return any results.
+   * - Note this should only be executed for local testing only.
    *
    * @param FutureInterface $future
    * @param boolean $displayOutput
    * @return mixed
+   *
+   * @internal
    */
   function spawn_run(FutureInterface $future, bool $displayOutput = false)
   {
@@ -450,9 +456,12 @@ if (!\function_exists('spawn')) {
 
   /**
    * Wait for a **pool** of **Parallel** `Future` processes to terminate, and return any results.
+   * - Note this should only be executed for local testing only.
    *
    * @param ParallelInterface $futures
    * @return mixed
+   *
+   * @internal
    */
   function spawn_wait(ParallelInterface $futures)
   {

@@ -75,9 +75,10 @@ interface ParallelInterface
 
   /**
    * Wait for a **pool** of `Future` processes to terminate, and return any results.
+   * - Note this should only be executed for local testing only.
    *
    * @param ParallelInterface $futures
-   * @return mixed
+   * @return array
    */
   public function wait(): array;
 

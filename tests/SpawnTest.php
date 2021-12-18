@@ -355,10 +355,9 @@ class SpawnTest extends TestCase
   {
     global $test;
     $test = 100;
+    $this->assertFalse(Globals::isChannelling());
     paralleling_setup(null, ['test' => 2, 'other' => 'foo']);
-    $this->assertEquals($GLOBALS['test'], 2);
-    $test = 4;
-    $this->assertEquals($GLOBALS['test'], 4);
+    $this->assertTrue(Globals::isChannelling());
   }
 
   public function testSetGetGlobals()
@@ -366,6 +365,10 @@ class SpawnTest extends TestCase
     global $test;
     $this->setGlobal();
     $this->assertEquals($GLOBALS['other'], 'foo');
-    $this->assertEquals($test, 4);
+    $this->assertEquals($test, 2);
+    Globals::reset();
+    $global = Globals::get();
+    $this->assertNull($global);
+    $this->assertFalse(Globals::isChannelling());
   }
 }
