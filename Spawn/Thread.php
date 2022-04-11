@@ -8,7 +8,7 @@ use Async\Spawn\Parallel;
 use Async\Spawn\Channels;
 
 /**
- *
+ * @codeCoverageIgnore
  */
 final class Thread
 {
