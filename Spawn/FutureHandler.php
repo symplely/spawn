@@ -61,7 +61,7 @@ final class FutureHandler
         }
       };
     } else {
-      throw new \Exception('Invalid "Coroutine" or custom "Event Loop" instance!');
+      throw new \Exception('Invalid "Coroutine", or no custom "Event Loop" instance!');
     }
 
     $this->timedOutCallback = $timedOutCallback;

@@ -11,7 +11,6 @@ use Async\Spawn\FutureHandler;
 use Async\Spawn\ParallelStatus;
 use Async\Spawn\ParallelInterface;
 use Async\Spawn\FutureInterface;
-use ReturnTypeWillChange;
 
 /**
  * The `Parallel` class provides an **pool** of `Future's`. It takes care of handling as many child processes as you want

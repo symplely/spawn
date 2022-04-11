@@ -10,6 +10,9 @@ use Async\Spawn\Globals;
 use Async\Spawn\ParallelInterface;
 use Async\Closure\SerializableClosure;
 
+if (!\defined('None'))
+  \define('None', null);
+
 if (!\defined('DS'))
   \define('DS', \DIRECTORY_SEPARATOR);
 
@@ -22,11 +25,26 @@ if (!\defined('IS_LINUX'))
 if (!\defined('IS_MACOS'))
   \define('IS_MACOS', (\PHP_OS === 'Darwin'));
 
+if (!\defined('IS_UV'))
+  \define('IS_UV', \function_exists('uv_loop_new'));
+
+if (!\defined('IS_ZTS'))
+  \define('IS_ZTS', \ZEND_THREAD_SAFE);
+
+if (!\defined('IS_THREADED_UV'))
+  \define('IS_THREADED_UV', \IS_ZTS && \IS_UV);
+
 if (!\defined('IS_PHP8'))
   \define('IS_PHP8', ((float) \phpversion() >= 8.0));
 
-if (!\defined('IS_UV'))
-  \define('IS_UV', \function_exists('uv_loop_new'));
+if (!\defined('IS_PHP81'))
+  \define('IS_PHP81', ((float) \phpversion() >= 8.1));
+
+if (!\defined('IS_PHP74'))
+  \define('IS_PHP74', ((float) \phpversion() >= 7.4) && !\IS_PHP8);
+
+if (!\defined('IS_PHP74+'))
+  \define('IS_PHP74+', (float) \phpversion() >= 7.4);
 
 if (!\defined('MS')) {
   /**
@@ -559,32 +577,32 @@ if (!\function_exists('spawn')) {
   /**
    * Create a encoded base64 valid string from a **serializable** data value.
    * @param mixed $input
+   * @param boolean $isThread
    *
    * @see https://opis.io/closure/3.x/serialize.html#serialize-unserialize-arbitrary-objects
    * @return string
-   *
-   * @codeCoverageIgnore
    */
-  function serializer($input)
+  function serializer($input, bool $isThread = false)
   {
     SerializableClosure::enterContext();
     SerializableClosure::wrapClosures($input);
     $input = @\serialize($input);
     SerializableClosure::exitContext();
-    return \base64_encode($input);
+    return !$isThread ? \base64_encode($input) : $input;
   }
 
   /**
    * Decodes base64 and creates a `PHP` value from the **serialized** data.
    *
    * @param string $input
+   * @param boolean $isThread
    *
    * @see https://opis.io/closure/3.x/serialize.html#serialize-unserialize-arbitrary-objects
    * @return mixed
    */
-  function deserializer($input)
+  function deserializer($input, bool $isThread = false)
   {
-    $input = \base64_decode($input);
+    $input = !$isThread ? \base64_decode($input) : $input;
     SerializableClosure::enterContext();
     $data = @\unserialize($input);
     SerializableClosure::unwrapClosures($data);

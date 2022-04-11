@@ -74,7 +74,7 @@ class Channeled implements ChanneledInterface
     \stream_set_read_buffer($this->futureError, 0);
     \stream_set_write_buffer($this->futureError, 0);
 
-    $this->type = empty($capacity) ? 'unbuffered' : 'buffered';
+    $this->type = $capacity < 0 ? 'unbuffered' : 'buffered';
     $this->capacity = $capacity;
     $this->buffered = new \SplQueue;
 
@@ -135,7 +135,6 @@ class Channeled implements ChanneledInterface
     if (static::isChannel($name)) {
       if (
         static::$channels[$name]->getFuture() === null
-        && static::$channels[$name] !== null
         && \method_exists(static::$channels[$name], 'isClose')
         && !static::$channels[$name]->isClose()
       )

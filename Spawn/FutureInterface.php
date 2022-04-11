@@ -77,13 +77,6 @@ interface FutureInterface
   public function wait($waitTimer = 1000, bool $useYield = false);
 
   /**
-   * Return the handlers to be called when the `Future` process is successful.
-   *
-   * @return array
-   */
-  public function getThen(): array;
-
-  /**
    * Add handlers to be called when the `Future` process is successful, erred or progressing in real time.
    *
    * @param callable $thenCallback

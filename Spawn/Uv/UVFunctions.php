@@ -1533,6 +1533,17 @@ function uv_mutex_lock(UVLock $lock)
 }
 
 /**
+ * Unlock mutex.
+ *
+ * @param UVLock $lock UV handle (uv mutex).
+ *
+ * @return void
+ */
+function uv_mutex_unlock(UVLock $lock)
+{
+}
+
+/**
  * @param UVLock $lock
  *
  * @return bool

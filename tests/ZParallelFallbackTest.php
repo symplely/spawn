@@ -50,7 +50,7 @@ class ZParallelFallbackTest extends TestCase
     public function testIt_can_error_on_invalid_event_loop_()
     {
         $this->expectException(\Exception::class);
-        $this->expectExceptionMessageMatches('/Invalid "Coroutine" or custom "Event Loop" instance!/');
+        $this->expectExceptionMessageMatches('/Invalid "Coroutine", or no custom "Event Loop" instance!/');
 
         $parallel = new Parallel('loop');
     }

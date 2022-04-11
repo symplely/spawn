@@ -197,9 +197,7 @@ class Future implements FutureInterface
       $getId = Spawn::getId();
     }
 
-    $uvLoop = (self::$uv === null || !self::$uv instanceof \UVLoop)
-      ? \uv_default_loop()
-      : self::$uv;
+    $uvLoop = (!self::$uv instanceof \UVLoop) ? \uv_default_loop() : self::$uv;
 
     $in = \uv_pipe_init($uvLoop, \IS_LINUX);
     $out = \uv_pipe_init($uvLoop, \IS_LINUX);
@@ -680,7 +678,6 @@ class Future implements FutureInterface
     return $this->decoded($this->rawLastResult);
   }
 
-
   public function getResult()
   {
     $user = Globals::get();
@@ -729,14 +726,6 @@ class Future implements FutureInterface
   public function getSignaled(): ?int
   {
     return $this->signal;
-  }
-
-  /**
-   * @codeCoverageIgnore
-   */
-  public function getThen(): array
-  {
-    return $this->successCallbacks;
   }
 
   /**
