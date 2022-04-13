@@ -10,7 +10,7 @@ class ZThreadTest extends TestCase
 {
     protected function setUp(): void
     {
-       // if (!\IS_THREADED_UV)
+        if (!\IS_THREADED_UV)
             $this->markTestSkipped('Test skipped "uv_loop_new" and "PHP ZTS" missing. currently buggy - zend_mm_heap corrupted');
     }
 

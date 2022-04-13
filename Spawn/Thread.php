@@ -7,9 +7,6 @@ namespace Async\Spawn;
 use Async\Spawn\Parallel;
 use Async\Spawn\Channels;
 
-/**
- * @codeCoverageIgnore
- */
 final class Thread
 {
   /** @var array[string|int => int|\UVAsync] */
@@ -143,17 +140,15 @@ final class Thread
     $tid = \is_scalar($tid) ? $tid : (int) $tid;
     $this->status[$tid] = 'queued';
     $async = $this;
-    if (\IS_WINDOWS && !isset($this->threads[$tid]))
+    if (!isset($this->threads[$tid]))
       $this->threads[$tid] = \uv_async_init(self::$uv, function () use ($async, $tid) {
         $async->handlers($tid);
       });
-    elseif (!isset($this->threads[$tid]))
-      $this->threads[$tid] = $tid;
 
-    \uv_queue_work(self::$uv, function () use ($async, $task, $tid, &$args) {
+    \uv_queue_work(self::$uv, function () use (&$async, $task, $tid, &$args) {
       include 'vendor/autoload.php';
-      $lock = \uv_mutex_init();
-      \uv_mutex_lock($lock);
+      $lock = \mutex_lock();
+      // @codeCoverageIgnoreStart
       if (!empty($args)) {
         foreach ($args as $channel) {
           if ($async->isChannel($channel) || $channel instanceof Channels) {
@@ -177,8 +172,8 @@ final class Thread
           }
         }
       }
-      \uv_mutex_unlock($lock);
-      unset($lock);
+      // @codeCoverageIgnoreEnd
+      \mutex_unlock($lock);
 
       try {
         $result = $task(...$args);
@@ -187,14 +182,11 @@ final class Thread
         $async->setException($tid, $exception);
       }
 
-      if (\IS_WINDOWS) {
-        if (isset($async->threads[$tid]) && $async->threads[$tid] instanceof \UVAsync)
-          \uv_async_send($async->threads[$tid]);
-        \usleep($async->count() * 500000);
+      if (isset($async->threads[$tid]) && $async->threads[$tid] instanceof \UVAsync) {
+        \uv_async_send($async->threads[$tid]);
+        \usleep($async->count() * 250000);
       }
-    }, function () use ($async, $tid) {
-      if (!\IS_WINDOWS)
-        $async->handlers($tid);
+    }, function () {
     });
 
     return $this;
@@ -238,8 +230,6 @@ final class Thread
    */
   protected function handlers($tid): void
   {
-    $lock = \uv_mutex_init();
-    \uv_mutex_lock($lock);
     if ($this->isRunning($tid)) {
     } elseif ($this->isSuccessful($tid)) {
       $this->remove($tid);
@@ -258,8 +248,6 @@ final class Thread
       else
         $this->triggerError($tid);
     }
-    \uv_mutex_unlock($lock);
-    unset($lock);
   }
 
   /**
@@ -334,10 +322,13 @@ final class Thread
    */
   protected function setException($tid, \Throwable $exception): void
   {
+    $lock = \mutex_lock();
     if (isset($this->status[$tid])) {
       $this->status[$tid] = false;
       $this->exception[$tid] = $exception;
     }
+
+    \mutex_unlock($lock);
   }
 
   /**
@@ -347,10 +338,13 @@ final class Thread
    */
   protected function setResult($tid, $result): void
   {
+    $lock = \mutex_lock();
     if (isset($this->status[$tid])) {
       $this->status[$tid] = true;
       $this->result[$tid] = $result;
     }
+
+    \mutex_unlock($lock);
   }
 
   public function getResult($tid)
@@ -469,11 +463,14 @@ final class Thread
    */
   protected function remove($tid): void
   {
-    if (\IS_WINDOWS && isset($this->threads[$tid]) && $this->threads[$tid] instanceof \UVAsync)
+    $lock = \mutex_lock();
+    if (isset($this->threads[$tid]) && $this->threads[$tid] instanceof \UVAsync)
       \uv_close($this->threads[$tid]);
 
     if (isset($this->status[$tid]))
       unset($this->threads[$tid], $this->status[$tid]);
+
+    \mutex_unlock($lock);
   }
 
   public function yieldAsFinished($tid)
