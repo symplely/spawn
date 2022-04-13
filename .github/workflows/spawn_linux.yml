@@ -1,11 +1,7 @@
 # GitHub Action for PHP with extensions
 name: Linux
 
-on:
-  push:
-    branches: [ master ]
-  pull_request:
-    branches: [ master ]
+on: [push, pull_request]
 
 jobs:
   linux:
@@ -15,7 +11,7 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-latest]
-        php: ['7.4']
+        php: ['7.3', '7.4']
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -26,7 +22,7 @@ jobs:
       - name: Setup PHP, with composer and extensions
         uses: shivammathur/setup-php@v2 #https://github.com/shivammathur/setup-php
         with:
-          php-version: '7.4'
+          php-version: ${{ matrix.php }}
           extensions: mbstring, simplexml, dom, xdebug
           coverage: xdebug
       - name: Build and install PHP-UV extension
@@ -50,39 +46,14 @@ jobs:
       fail-fast: false
       matrix:
         operating-system: [ubuntu-latest]
-        php: ['8']
+        php: ['8', '8.1']
     steps:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Setup PHP, with composer and extensions
         uses: shivammathur/setup-php@v2 #https://github.com/shivammathur/setup-php
         with:
-          php-version: '8'
-          extensions: mbstring, simplexml, dom
-      - name: Install dependencies
-        run: composer install
-      - name: Test with phpunit
-        run: vendor/bin/phpunit -d zend.enable_gc=0 --coverage-clover=coverage/phpunit/clover.xml
-      - name: Submit code coverage
-        if: ${{ success() }} || ${{ failure() }}
-        run: bash <(curl -s https://codecov.io/bash)
-
-  linux_php81:
-    name: Linux CI - no libuv
-    runs-on: ubuntu-latest
-    continue-on-error: true
-    strategy:
-      fail-fast: false
-      matrix:
-        operating-system: [ubuntu-latest]
-        php: ['8.1']
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: Setup PHP, with composer and extensions
-        uses: shivammathur/setup-php@v2 #https://github.com/shivammathur/setup-php
-        with:
-          php-version: '8.1'
+          php-version: ${{ matrix.php }}
           extensions: mbstring, simplexml, dom
       - name: Install dependencies
         run: composer install
