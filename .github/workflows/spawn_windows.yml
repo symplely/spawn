@@ -11,6 +11,7 @@ jobs:
   windows:
     name: Windows CI
     runs-on: windows-2019
+    continue-on-error: true
     strategy:
       fail-fast: false
       matrix:
@@ -43,6 +44,7 @@ jobs:
     - name: Test with phpunit
       run: vendor\bin\phpunit -d zend.enable_gc=0 --coverage-clover=coverage/phpunit/clover.xml
     - name: Submit code coverage
+      if: ${{ success() }} || ${{ failure() }}
       uses: codecov/codecov-action@v1
       with:
         file: ./clover.xml # optional
