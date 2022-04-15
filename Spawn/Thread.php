@@ -149,22 +149,13 @@ final class Thread
    */
   public function join($tid = null): void
   {
-    if (!empty($tid))
-      while ($this->isRunning($tid)) {
-        if ($this->hasLoop) {
-          $this->loop->run();
-        } else {
-          \uv_run(self::$uv, \UV::RUN_ONCE);
-        }
+    while (!empty($tid) ? $this->isRunning($tid) : !$this->isEmpty()) {
+      if ($this->hasLoop) {
+        $this->loop->run($tid);
+      } else {
+        \uv_run(self::$uv, !empty($tid) ? \UV::RUN_ONCE : \UV::RUN_NOWAIT);
       }
-    else
-      while (!$this->isEmpty()) {
-        if ($this->hasLoop) {
-          $this->loop->run();
-        } else {
-          \uv_run(self::$uv, \UV::RUN_NOWAIT);
-        }
-      }
+    }
   }
 
   /**
