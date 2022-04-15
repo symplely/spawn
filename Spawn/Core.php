@@ -316,7 +316,6 @@ if (!\function_exists('spawn')) {
    * - requires `libuv` extension.
    *
    * @return \UVLock
-   * @codeCoverageIgnore
    */
   function mutex_lock(): \UVLock
   {
@@ -332,7 +331,6 @@ if (!\function_exists('spawn')) {
    *
    * @param \UVLock $lock
    * @return void
-   * @codeCoverageIgnore
    */
   function mutex_unlock(\UVLock $lock)
   {

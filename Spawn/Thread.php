@@ -184,7 +184,7 @@ final class Thread
 
       if (isset($async->threads[$tid]) && $async->threads[$tid] instanceof \UVAsync) {
         \uv_async_send($async->threads[$tid]);
-        \usleep($async->count() * 300000);
+        \usleep($async->count() * 70000);
       }
     }, function () {
     });
@@ -201,7 +201,6 @@ final class Thread
    */
   public function join($tid = null): void
   {
-    \uv_run(self::$uv, \UV::RUN_ONCE);
     if (!empty($tid))
       while ($this->isRunning($tid)) {
         if ($this->hasLoop) {
