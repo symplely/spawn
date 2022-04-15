@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Async\Spawn;
 
 use Async\Spawn\Parallel;
-use Async\Spawn\Channels;
 
 final class Thread
 {
@@ -51,23 +50,6 @@ final class Thread
     return self::$uv;
   }
 
-  public function isChannel($channel): bool
-  {
-    return \is_object($channel)
-      && \method_exists($channel, 'isThread')
-      && \method_exists($channel, 'setThread')
-      && \method_exists($channel, 'isState')
-      && \method_exists($channel, 'setState')
-      && \method_exists($channel, 'isChanneling')
-      && \method_exists($channel, 'open')
-      && \method_exists($channel, 'make')
-      && \method_exists($channel, 'close')
-      && \method_exists($channel, 'isClose')
-      && \method_exists($channel, 'send')
-      && \method_exists($channel, 'kill')
-      && \method_exists($channel, 'recv');
-  }
-
   public function __destruct()
   {
     if (!$this->isClosed)
@@ -89,12 +71,6 @@ final class Thread
       $this->errorCallbacks = [];
       $this->isYield = false;
       $this->isClosed = true;
-      if (!$this->hasLoop && self::$uv instanceof \UVLoop) {
-        @\uv_stop(self::$uv);
-        @\uv_run(self::$uv);
-        @\uv_loop_delete(self::$uv);
-        self::$uv = null;
-      }
 
       $this->hasLoop = null;
     }
@@ -145,36 +121,8 @@ final class Thread
         $async->handlers($tid);
       });
 
-    \uv_queue_work(self::$uv, function () use (&$async, $task, $tid, &$args) {
+    \uv_queue_work(self::$uv, function () use (&$async, &$task, $tid, &$args) {
       include 'vendor/autoload.php';
-      $lock = \mutex_lock();
-      // @codeCoverageIgnoreStart
-      if (!empty($args)) {
-        foreach ($args as $channel) {
-          if ($async->isChannel($channel) || $channel instanceof Channels) {
-            if (!$channel->isThread())
-              $channel->setThread($async, $tid, \getmyuid(), $async::getUv());
-            elseif (!$async->isChanneled($tid))
-              $async->setChanneled($tid, $channel);
-            break;
-          } elseif (\is_string($channel)) {
-            try {
-              $channel = Channels::open($channel);
-              if ($channel instanceof Channels || $async->isChannel($channel)) {
-                if (!$channel->isThread())
-                  $channel->setThread($async, $tid, \getmyuid(), $async::getUv());
-                elseif (!$async->isChanneled($tid))
-                  $async->setChanneled($tid, $channel);
-                break;
-              }
-            } catch (\Throwable $e) {
-            }
-          }
-        }
-      }
-      // @codeCoverageIgnoreEnd
-      \mutex_unlock($lock);
-
       try {
         $result = $task(...$args);
         $async->setResult($tid, $result);
@@ -262,23 +210,6 @@ final class Thread
     return empty($this->threads);
   }
 
-  protected function setChanneled($tid, $channel)
-  {
-    if ($this->isRunning($tid))
-      $this->status[$tid] = $channel;
-  }
-
-  /**
-   * Tell if the referenced `tid` is executing a channel
-   *
-   * @param string|int $tid Thread ID
-   * @return bool
-   */
-  public function isChanneled($tid): bool
-  {
-    return isset($this->status[$tid]) && \is_object($this->status[$tid]);
-  }
-
   /**
    * Tell if the referenced `tid` is executing.
    *
@@ -287,7 +218,7 @@ final class Thread
    */
   public function isRunning($tid): bool
   {
-    return isset($this->status[$tid]) && (\is_string($this->status[$tid]) || \is_object($this->status[$tid]));
+    return isset($this->status[$tid]) && \is_string($this->status[$tid]);
   }
 
   /**

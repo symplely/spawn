@@ -14,6 +14,44 @@ class ZThreadTest extends TestCase
             $this->markTestSkipped('Test skipped "uv_loop_new" and "PHP ZTS" missing. currently buggy - zend_mm_heap corrupted');
     }
 
+    public function testIt_can_handle_multi()
+    {
+        $this->markTestSkipped('Test skipped "uv_loop_new" and "PHP ZTS" missing. currently buggy - zend_mm_heap corrupted');
+        $thread = new Thread();
+
+        $counter = 0;
+
+        $thread->create(5, function () {
+            return 2;
+        })->then(function (int $output) use (&$counter) {
+            $counter += $output;
+        });
+
+        $thread->create(6, function () {
+            return 2;
+        })->then(function (int $output) use (&$counter) {
+            $counter += $output;
+        });
+
+        $thread->create(7, function () {
+            usleep(20000);
+            return 2;
+        })->then(function (int $output) use (&$counter) {
+            $counter += $output;
+        });
+
+        $thread->join(6);
+        $this->assertCount(2, $thread->getSuccess());
+        $this->assertEquals(2, $thread->getResult(6));
+        $this->assertEquals(6, $counter);
+
+        $thread->join();
+        $this->assertCount(3, $thread->getSuccess());
+        $this->assertEquals(18, $counter);
+
+        $thread->close();
+    }
+
     public function testIt_can_create_and_return_results()
     {
         $thread = new Thread();
