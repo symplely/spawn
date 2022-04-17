@@ -149,10 +149,15 @@ final class Thread
    */
   public function join($tid = null): void
   {
+    $isCoroutine = $this->hasLoop && \is_object($this->loop) && \method_exists($this->loop, 'futureOn') && \method_exists($this->loop, 'futureOff');
     while (!empty($tid) ? $this->isRunning($tid) : !$this->isEmpty()) {
-      if ($this->hasLoop) {
-        $this->loop->run($tid);
-      } else {
+      if ($isCoroutine) { // @codeCoverageIgnoreStart
+        $this->loop->futureOn();
+        $this->loop->run();
+        $this->loop->futureOff();
+      } elseif ($this->hasLoop) {
+        $this->loop->run();
+      } else { // @codeCoverageIgnoreEnd
         \uv_run(self::$uv, !empty($tid) ? \UV::RUN_ONCE : \UV::RUN_NOWAIT);
       }
     }
