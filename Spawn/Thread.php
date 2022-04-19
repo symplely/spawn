@@ -42,6 +42,7 @@ final class Thread
   /** @var boolean for **Coroutine** `yield` usage */
   protected $isYield = false;
   protected $isClosed = false;
+  protected $releaseQueue = false;
 
   protected static $uv = null;
 
@@ -55,8 +56,7 @@ final class Thread
     if (!$this->isClosed)
       $this->close();
 
-    $this->result = null;
-    $this->exception = null;
+    $this->releaseQueue = true;
   }
 
   public function close()
@@ -65,8 +65,6 @@ final class Thread
       $this->success = null;
       $this->failed = null;
       $this->loop = null;
-      $this->threads = null;
-      $this->status = null;
       $this->successCallbacks = [];
       $this->errorCallbacks = [];
       $this->isYield = false;
@@ -121,7 +119,7 @@ final class Thread
         $async->handlers($tid);
       });
 
-    \uv_queue_work(self::$uv, function () use (&$async, &$task, $tid, &$args) {
+    \uv_queue_work(self::$uv, function () use (&$async, $task, $tid, &$args) {
       include 'vendor/autoload.php';
       try {
         $result = $task(...$args);
@@ -132,7 +130,9 @@ final class Thread
 
       if (isset($async->threads[$tid]) && $async->threads[$tid] instanceof \UVAsync) {
         \uv_async_send($async->threads[$tid]);
-        \usleep($async->count() * 70000);
+        do {
+          \usleep($async->count() * 70000);
+        } while (!$async->releaseQueue);
       }
     }, function () {
     });
@@ -160,6 +160,10 @@ final class Thread
       } else { // @codeCoverageIgnoreEnd
         \uv_run(self::$uv, !empty($tid) ? \UV::RUN_ONCE : \UV::RUN_NOWAIT);
       }
+    }
+
+    if (!empty($tid)) {
+      $this->releaseQueue = true;
     }
   }
 
