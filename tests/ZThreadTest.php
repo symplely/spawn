@@ -18,38 +18,44 @@ class ZThreadTest extends TestCase
     {
         $this->markTestSkipped('Test skipped "uv_loop_new" and "PHP ZTS" missing. currently buggy - zend_mm_heap corrupted');
         $thread = new Thread();
-
         $counter = 0;
+        try {
+            $thread->create(5, function () {
+                usleep(50000);
+                return 2;
+            })->then(function (int $output) use (&$counter) {
+                $counter += $output;
+            })->catch(function (\Throwable $e) {
+                var_dump($e->getMessage());
+            });
 
-        $thread->create(5, function () {
-            return 2;
-        })->then(function (int $output) use (&$counter) {
-            $counter += $output;
-        });
+            $thread->create(6, function () {
+                usleep(50);
+                return 4;
+            })->then(function (int $output) use (&$counter) {
+                $counter += $output;
+            })->catch(function (\Throwable $e) {
+                var_dump($e->getMessage());
+            });
 
-        $thread->create(6, function () {
-            return 2;
-        })->then(function (int $output) use (&$counter) {
-            $counter += $output;
-        });
+            $thread->create(7, function () {
+                usleep(5000000);
+            })->then(function (int $output) use (&$counter) {
+                $counter += $output;
+            })->catch(function (\Throwable $exception) {
+                $this->assertEquals('Thread 7 cancelled!', $exception->getMessage());
+            });
 
-        $thread->create(7, function () {
-            usleep(20000);
-            return 2;
-        })->then(function (int $output) use (&$counter) {
-            $counter += $output;
-        });
+            $thread->join(6);
+            $this->assertCount(1, $thread->getSuccess());
+            $this->assertEquals(4, $thread->getResult(6));
 
-        $thread->join(6);
-        $this->assertCount(2, $thread->getSuccess());
-        $this->assertEquals(2, $thread->getResult(6));
-        $this->assertEquals(6, $counter);
-
-        $thread->join();
-        $this->assertCount(3, $thread->getSuccess());
-        $this->assertEquals(18, $counter);
-
-        $thread->close();
+            $thread->cancel(7);
+            $thread->join(1);
+            $this->assertCount(1, $thread->getFailed());
+        } catch (\Throwable $th) {
+            var_dump($th->getMessage());
+        }
     }
 
     public function testIt_can_create_and_return_results()
@@ -99,15 +105,16 @@ class ZThreadTest extends TestCase
         $thread = new Thread();
 
         $thread->create(44, function () {
-            throw new \Exception('test');
-        })->catch(function (\Exception $e) {
-            $this->assertEquals('test', $e->getMessage());
+            sleep(100);
+        })->catch(function (\Throwable $e) {
+            $this->assertEquals('Thread 44 cancelled!', $e->getMessage());
         });
 
+        $thread->cancel(44);
         $thread->join(44);
-        $thread->close();
+        $this->assertInstanceOf(\RuntimeException::class, $thread->getException(44));
 
-        $this->assertInstanceOf(\Exception::class, $thread->getException(44));
+        $thread->close();
         $this->assertCount(1, $thread->getFailed());
     }
 }
