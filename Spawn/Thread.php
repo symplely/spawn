@@ -78,7 +78,6 @@ final class Thread
       $this->isYield = false;
       $this->isClosed = true;
       $this->releaseQueue = true;
-      \gc_collect_cycles();
     }
   }
 
@@ -92,6 +91,7 @@ final class Thread
     if (!\IS_THREADED_UV)
       throw new \InvalidArgumentException('This `Thread` class requires PHP `ZTS` and the libuv `ext-uv` extension!');
 
+    $lock = \mutex_lock();
     $this->isYield = $yielding;
     $this->hasLoop = \is_object($loop) && \method_exists($loop, 'executeTask') && \method_exists($loop, 'run');
     if (Parallel::isCoroutine($loop)) {
@@ -106,6 +106,7 @@ final class Thread
     self::$uv = $uvLoop instanceof \UVLoop ? $uvLoop : \uv_default_loop();
     $this->success = $this->isYield ? [$this, 'yieldAsFinished'] : [$this, 'triggerSuccess'];
     $this->failed = $this->isYield ? [$this, 'yieldAsFailed'] : [$this, 'triggerError'];
+    \mutex_unlock($lock);
   }
 
   /**
@@ -119,6 +120,7 @@ final class Thread
    */
   public function create($tid, callable $task, ...$args): self
   {
+    $lock = \mutex_lock();
     $tid = \is_scalar($tid) ? $tid : (int) $tid;
     $this->tid = $tid;
     $this->status[$tid] = 'queued';
@@ -143,13 +145,12 @@ final class Thread
       if (isset($async->threads[$tid]) && $async->threads[$tid] instanceof \UVAsync && \uv_is_active($async->threads[$tid])) {
         \uv_async_send($async->threads[$tid]);
         do {
-          \usleep($async->count() * 70000);
+          \usleep($async->count() * 35000);
         } while (!$async->releaseQueue);
       }
-
-      \gc_collect_cycles();
     }, function () {
     });
+    \mutex_unlock($lock);
 
     return $this;
   }
@@ -353,7 +354,9 @@ final class Thread
    */
   public function then(callable $thenCallback, callable $failCallback = null): self
   {
+    $lock = \mutex_lock();
     $this->successCallbacks[$this->tid][] = $thenCallback;
+    \mutex_unlock($lock);
     if ($failCallback !== null) {
       $this->catch($failCallback);
     }
@@ -369,7 +372,9 @@ final class Thread
    */
   public function catch(callable $callback): self
   {
+    $lock = \mutex_lock();
     $this->errorCallbacks[$this->tid][] = $callback;
+    \mutex_unlock($lock);
 
     return $this;
   }
