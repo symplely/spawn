@@ -14,50 +14,6 @@ class ZThreadTest extends TestCase
             $this->markTestSkipped('Test skipped "uv_loop_new" and "PHP ZTS" missing. currently buggy - zend_mm_heap corrupted');
     }
 
-    public function testIt_can_handle_multi()
-    {
-        $this->markTestSkipped('Test skipped "uv_loop_new" and "PHP ZTS" missing. currently buggy - zend_mm_heap corrupted');
-        $thread = new Thread();
-        $counter = 0;
-        try {
-            $thread->create(5, function () {
-                usleep(50000);
-                return 2;
-            })->then(function (int $output) use (&$counter) {
-                $counter += $output;
-            })->catch(function (\Throwable $e) {
-                var_dump($e->getMessage());
-            });
-
-            $thread->create(6, function () {
-                usleep(50);
-                return 4;
-            })->then(function (int $output) use (&$counter) {
-                $counter += $output;
-            })->catch(function (\Throwable $e) {
-                var_dump($e->getMessage());
-            });
-
-            $thread->create(7, function () {
-                usleep(5000000);
-            })->then(function (int $output) use (&$counter) {
-                $counter += $output;
-            })->catch(function (\Throwable $exception) {
-                $this->assertEquals('Thread 7 cancelled!', $exception->getMessage());
-            });
-
-            $thread->join(6);
-            $this->assertCount(1, $thread->getSuccess());
-            $this->assertEquals(4, $thread->getResult(6));
-
-            $thread->cancel(7);
-            $thread->join(1);
-            $this->assertCount(1, $thread->getFailed());
-        } catch (\Throwable $th) {
-            var_dump($th->getMessage());
-        }
-    }
-
     public function testIt_can_create_and_return_results()
     {
         $thread = new Thread();

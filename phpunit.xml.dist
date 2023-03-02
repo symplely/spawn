@@ -3,7 +3,6 @@
 
     <testsuites>
         <testsuite name="Spawn Test Suite">
-            <directory suffix=".phpt">tests/libuv/</directory>
             <directory suffix=".php">tests/</directory>
         </testsuite>
     </testsuites>

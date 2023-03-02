@@ -26,7 +26,7 @@
     ],
     "require": {
         "php": ">7.1",
-        "symfony/process": ">4.0.0"
+        "symfony/process": "^4 | ~5.2.0"
     },
     "autoload": {
         "files": [
