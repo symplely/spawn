@@ -1,7 +1,11 @@
 # GitHub Action for PHP with extensions
 name: Linux
 
-on: [push, pull_request]
+on:
+  push:
+    branches: [ 4x ]
+  pull_request:
+    branches: [ 4x ]
 
 jobs:
   linux:
