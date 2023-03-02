@@ -58,15 +58,17 @@ final class Thread
       $this->close();
 
     if (!$this->hasLoop && self::$uv instanceof \UVLoop) {
-      @\uv_stop(self::$uv);
-      @\uv_run(self::$uv);
-      @\uv_loop_delete(self::$uv);
+      $loop = self::$uv;
       self::$uv = null;
+      @\uv_stop($loop);
+      @\uv_run($loop);
     }
 
-    $this->successCallbacks = [];
-    $this->errorCallbacks = [];
-    $this->threads = null;
+    if (!\is_null($this->threads)) {
+      $this->successCallbacks = [];
+      $this->errorCallbacks = [];
+      $this->threads = null;
+    }
   }
 
   public function close()
@@ -103,7 +105,7 @@ final class Thread
     }
 
     $uvLoop = $uv instanceof \UVLoop ? $uv : self::$uv;
-    self::$uv = $uvLoop instanceof \UVLoop ? $uvLoop : \uv_default_loop();
+    self::$uv = $uvLoop instanceof \UVLoop ? $uvLoop : \uv_loop_new();
     $this->success = $this->isYield ? [$this, 'yieldAsFinished'] : [$this, 'triggerSuccess'];
     $this->failed = $this->isYield ? [$this, 'yieldAsFailed'] : [$this, 'triggerError'];
     \mutex_unlock($lock);
@@ -145,7 +147,7 @@ final class Thread
       if (isset($async->threads[$tid]) && $async->threads[$tid] instanceof \UVAsync && \uv_is_active($async->threads[$tid])) {
         \uv_async_send($async->threads[$tid]);
         do {
-          \usleep($async->count() * 35000);
+          \usleep($async->count() * 7000);
         } while (!$async->releaseQueue);
       }
     }, function () {
