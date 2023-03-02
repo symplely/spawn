@@ -88,11 +88,12 @@ final class Thread
    * @param \UVLoop|null $uv
    * @param boolean $yielding
    */
-  public function __construct($loop = null, ?\UVLoop $uv = null, bool $yielding = false)
+  public function __construct(object $loop = null, bool $yielding = false)
   {
     if (!\IS_THREADED_UV)
       throw new \InvalidArgumentException('This `Thread` class requires PHP `ZTS` and the libuv `ext-uv` extension!');
 
+    $uv = null;
     $lock = \mutex_lock();
     $this->isYield = $yielding;
     $this->hasLoop = \is_object($loop) && \method_exists($loop, 'executeTask') && \method_exists($loop, 'run');
