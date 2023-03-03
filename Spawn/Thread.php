@@ -42,7 +42,6 @@ final class Thread
   /** @var boolean for **Coroutine** `yield` usage */
   protected $isYield = false;
   protected $isClosed = false;
-  protected $releaseQueue = false;
   protected $tid = 0;
 
   protected static $uv = null;
@@ -54,6 +53,7 @@ final class Thread
 
   public function __destruct()
   {
+    \uv_run(self::$uv, \UV::RUN_DEFAULT);
     if (!$this->isClosed)
       $this->close();
 
@@ -79,7 +79,6 @@ final class Thread
       $this->loop = null;
       $this->isYield = false;
       $this->isClosed = true;
-      $this->releaseQueue = true;
     }
   }
 
@@ -133,8 +132,8 @@ final class Thread
         $this->handlers($tid);
       });
 
-    \uv_queue_work(self::$uv, function () use ($async, &$task, $tid, &$args) {
-      include 'vendor/autoload.php';
+    \uv_queue_work(self::$uv, function () use (&$async, &$task, $tid, &$args) {
+      // include 'vendor/autoload.php';
       try {
         if (!$async->isCancelled($tid))
           $result = $task(...$args);
@@ -147,9 +146,7 @@ final class Thread
 
       if (isset($async->threads[$tid]) && $async->threads[$tid] instanceof \UVAsync && \uv_is_active($async->threads[$tid])) {
         \uv_async_send($async->threads[$tid]);
-        do {
-          \usleep($async->count() * 7000);
-        } while (!$async->releaseQueue);
+        \usleep(7000);
       }
     }, function () {
     });
@@ -188,7 +185,8 @@ final class Thread
   {
     $isCoroutine = $this->hasLoop && \is_object($this->loop) && \method_exists($this->loop, 'futureOn') && \method_exists($this->loop, 'futureOff');
     $isCancelling = !empty($tid) && $this->isCancelled($tid) && !$this->isEmpty() && \uv_is_active($this->threads[$tid]);
-    while (!empty($tid) ? ($this->isRunning($tid) || $this->isCancelled($tid)) : !$this->isEmpty()) {
+    while (!empty($tid) ? $this->isRunning($tid) : $this->count() > 0) {
+
       if ($isCoroutine) { // @codeCoverageIgnoreStart
         $this->loop->futureOn();
         $this->loop->run();
@@ -196,15 +194,19 @@ final class Thread
       } elseif ($this->hasLoop) {
         $this->loop->run(); // @codeCoverageIgnoreEnd
       } else {
-        \uv_run(self::$uv, !empty($tid) ? \UV::RUN_ONCE : \UV::RUN_NOWAIT);
+        if ($this->count() === 1)
+          $mode = \UV::RUN_DEFAULT;
+        elseif (!\is_null($tid))
+          $mode = \UV::RUN_ONCE;
+        else
+          $mode = \UV::RUN_NOWAIT;
+
+        \uv_run(self::$uv, $mode);
       }
 
       if ($isCancelling)
         break;
     }
-
-    if (!empty($tid))
-      $this->releaseQueue = true;
   }
 
   /**
@@ -301,13 +303,13 @@ final class Thread
    */
   protected function setException($tid, \Throwable $exception): void
   {
-    $lock = \mutex_lock();
+    //   $lock = \mutex_lock();
     if (isset($this->status[$tid])) {
       $this->status[$tid] = false;
       $this->exception[$tid] = $exception;
     }
 
-    \mutex_unlock($lock);
+    //   \mutex_unlock($lock);
   }
 
   /**
@@ -317,19 +319,22 @@ final class Thread
    */
   protected function setResult($tid, $result): void
   {
-    $lock = \mutex_lock();
+    //    $lock = \mutex_lock();
     if (isset($this->status[$tid])) {
       $this->status[$tid] = true;
       $this->result[$tid] = $result;
     }
 
-    \mutex_unlock($lock);
+    // \mutex_unlock($lock);
   }
 
   public function getResult($tid)
   {
     if (isset($this->result[$tid]))
       return $this->result[$tid];
+
+    //   $this->join($tid);
+    //   return $this->getResult($tid);
   }
 
   public function getException($tid): \Throwable
