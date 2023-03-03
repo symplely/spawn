@@ -129,8 +129,8 @@ final class Thread
     $this->status[$tid] = 'queued';
     $async = $this;
     if (!isset($this->threads[$tid]))
-      $this->threads[$tid] = \uv_async_init(self::$uv, function () use ($async, $tid) {
-        $async->handlers($tid);
+      $this->threads[$tid] = \uv_async_init(self::$uv, function () use ($tid) {
+        $this->handlers($tid);
       });
 
     \uv_queue_work(self::$uv, function () use ($async, &$task, $tid, &$args) {
