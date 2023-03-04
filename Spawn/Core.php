@@ -310,34 +310,6 @@ if (\IS_WINDOWS) {
 }
 
 if (!\function_exists('spawn')) {
-
-  /**
-   * Initialize mutex handle and lock mutex.
-   * - requires `libuv` extension.
-   *
-   * @return \UVLock
-   */
-  function mutex_lock(): \UVLock
-  {
-    $lock = \uv_mutex_init();
-    \uv_mutex_lock($lock);
-
-    return $lock;
-  }
-
-  /**
-   * Unlock mutex and destroy.
-   * - requires `libuv` extension.
-   *
-   * @param \UVLock $lock
-   * @return void
-   */
-  function mutex_unlock(\UVLock $lock)
-  {
-    \uv_mutex_unlock($lock);
-    unset($lock);
-  }
-
   /**
    * Create an **Future** `child` process either by a **system command** or `callable`.
    *
