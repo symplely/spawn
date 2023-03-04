@@ -25,7 +25,7 @@ This package is part of our [symplely/coroutine](https://symplely.github.io/coro
 
 To learn more about **libuv** features read the online tutorial [book](https://nikhilm.github.io/uvbook/index.html).
 
-The terminology in this version **3x** was changed to be inline with [`ext-parallel`](https://www.php.net/manual/en/book.parallel.php) extension usage, and to behave as a `Thread`, but without many of that library extension's limitations.
+The terminology in versions **3x** and above was changed to be inline with [`ext-parallel`](https://www.php.net/manual/en/book.parallel.php) extension usage, and to behave as a `Thread`, but without many of that library extension's limitations.
 
 The `Channeled` and `Future` classes are both designed in a way to be extend from to create your own **implementation** of a `Parallel` based library. Currently `libuv` will be required to get full benefits of the implementation.
 
