@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Async\Spawn;
 
 use Async\Spawn\Parallel;
+use Async\Spawn\TWorker;
 
 final class Thread
 {
@@ -53,7 +54,6 @@ final class Thread
 
   public function __destruct()
   {
-    \uv_run(self::$uv, \UV::RUN_DEFAULT);
     if (!$this->isClosed)
       $this->close();
 
@@ -112,15 +112,23 @@ final class Thread
   }
 
   /**
+   * @codeCoverageIgnore
+   */
+  public function create_ex(callable $task, ...$args): TWorker
+  {
+    return $this->create(\uniqid(), $task, $args);
+  }
+
+  /**
    * This will cause a _new thread_ to be **created** and **spawned** for the associated `Thread` object,
    * where its _internal_ task `queue` will begin to be processed.
    *
    * @param string|int $tid Thread ID
    * @param callable $task
    * @param mixed ...$args
-   * @return self
+   * @return TWorker
    */
-  public function create($tid, callable $task, ...$args): self
+  public function create($tid, callable $task, ...$args): TWorker
   {
     $lock = \mutex_lock();
     $tid = \is_scalar($tid) ? $tid : (int) $tid;
@@ -133,7 +141,6 @@ final class Thread
       });
 
     \uv_queue_work(self::$uv, function () use (&$async, &$task, $tid, &$args) {
-      // include 'vendor/autoload.php';
       try {
         if (!$async->isCancelled($tid))
           $result = $task(...$args);
@@ -146,13 +153,13 @@ final class Thread
 
       if (isset($async->threads[$tid]) && $async->threads[$tid] instanceof \UVAsync && \uv_is_active($async->threads[$tid])) {
         \uv_async_send($async->threads[$tid]);
-        \usleep(7000);
+        \usleep(70500);
       }
     }, function () {
     });
     \mutex_unlock($lock);
 
-    return $this;
+    return new TWorker($this, $tid);
   }
 
   /**
@@ -175,7 +182,7 @@ final class Thread
   }
 
   /**
-   * This method will join the spawned `tid` or `all` threads.
+   * This method will join a single thread by `tid` or `all` threads.
    * - It will first wait for that thread's internal task queue to finish.
    *
    * @param string|int $tid Thread ID
@@ -185,7 +192,7 @@ final class Thread
   {
     $isCoroutine = $this->hasLoop && \is_object($this->loop) && \method_exists($this->loop, 'futureOn') && \method_exists($this->loop, 'futureOff');
     $isCancelling = !empty($tid) && $this->isCancelled($tid) && !$this->isEmpty() && \uv_is_active($this->threads[$tid]);
-    while (!empty($tid) ? $this->isRunning($tid) : $this->count() > 0) {
+    while (!empty($tid) ? $this->isRunning($tid) && \uv_is_active($this->threads[$tid]) : $this->count() > 0) {
 
       if ($isCoroutine) { // @codeCoverageIgnoreStart
         $this->loop->futureOn();
@@ -194,10 +201,10 @@ final class Thread
       } elseif ($this->hasLoop) {
         $this->loop->run(); // @codeCoverageIgnoreEnd
       } else {
-        if ($this->count() === 1)
-          $mode = \UV::RUN_DEFAULT;
-        elseif (!\is_null($tid))
+        if (!\is_null($tid))
           $mode = \UV::RUN_ONCE;
+        elseif ($this->count() === 1)
+          $mode = \UV::RUN_DEFAULT;
         else
           $mode = \UV::RUN_NOWAIT;
 
@@ -332,9 +339,6 @@ final class Thread
   {
     if (isset($this->result[$tid]))
       return $this->result[$tid];
-
-    //   $this->join($tid);
-    //   return $this->getResult($tid);
   }
 
   public function getException($tid): \Throwable
@@ -360,13 +364,13 @@ final class Thread
    * @param callable|null $failCallback
    * @return self
    */
-  public function then(callable $thenCallback, callable $failCallback = null): self
+  public function then(callable $thenCallback, callable $failCallback = null, $tid = null): self
   {
     $lock = \mutex_lock();
-    $this->successCallbacks[$this->tid][] = $thenCallback;
+    $this->successCallbacks[(\is_null($tid) ? $this->tid : $tid)][] = $thenCallback;
     \mutex_unlock($lock);
     if ($failCallback !== null) {
-      $this->catch($failCallback);
+      $this->catch($failCallback, $tid);
     }
 
     return $this;
@@ -378,10 +382,10 @@ final class Thread
    * @param callable $callback
    * @return self
    */
-  public function catch(callable $callback): self
+  public function catch(callable $callback, $tid = null): self
   {
     $lock = \mutex_lock();
-    $this->errorCallbacks[$this->tid][] = $callback;
+    $this->errorCallbacks[(\is_null($tid) ? $this->tid : $tid)][] = $callback;
     \mutex_unlock($lock);
 
     return $this;
