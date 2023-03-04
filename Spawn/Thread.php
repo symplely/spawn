@@ -42,36 +42,9 @@ final class Thread
 
   /** @var boolean for **Coroutine** `yield` usage */
   protected $isYield = false;
-  protected $isClosed = false;
   protected $tid = 0;
 
-  protected static $uv = null;
-
-  public static function getUv(): \UVLoop
-  {
-    return self::$uv;
-  }
-
-  public function __destruct()
-  {
-    if (!\is_null($this->threads)) {
-      $this->successCallbacks = null;
-      $this->errorCallbacks = null;
-      $this->success = null;
-      $this->failed = null;
-      $this->loop = null;
-      $this->isYield = false;
-      $this->isClosed = true;
-      $this->threads = null;
-    }
-
-    if (!$this->hasLoop && self::$uv instanceof \UVLoop) {
-      $loop = self::$uv;
-      self::$uv = null;
-      @\uv_stop($loop);
-      @\uv_run($loop);
-    }
-  }
+  protected $uv = null;
 
   /**
    * @param object $loop
@@ -95,8 +68,7 @@ final class Thread
       $this->loop = $loop;
     }
 
-    $uvLoop = $uv instanceof \UVLoop ? $uv : self::$uv;
-    self::$uv = $uvLoop instanceof \UVLoop ? $uvLoop : \uv_loop_new();
+    $this->uv = $uv instanceof \UVLoop ? $uv : \uv_loop_new();
     $this->success = $this->isYield ? [$this, 'yieldAsFinished'] : [$this, 'triggerSuccess'];
     $this->failed = $this->isYield ? [$this, 'yieldAsFailed'] : [$this, 'triggerError'];
     \mutex_unlock($lock);
@@ -127,11 +99,11 @@ final class Thread
     $this->status[$tid] = 'queued';
     $async = $this;
     if (!isset($this->threads[$tid]))
-      $this->threads[$tid] = \uv_async_init(self::$uv, function () use ($tid) {
+      $this->threads[$tid] = \uv_async_init($this->uv, function () use ($tid) {
         $this->handlers($tid);
       });
 
-    \uv_queue_work(self::$uv, function () use (&$async, &$task, $tid, &$args) {
+    \uv_queue_work($this->uv, function () use (&$async, &$task, $tid, &$args) {
       try {
         if (!$async->isCancelled($tid))
           $result = $task(...$args);
@@ -144,7 +116,7 @@ final class Thread
 
       if (isset($async->threads[$tid]) && $async->threads[$tid] instanceof \UVAsync && \uv_is_active($async->threads[$tid])) {
         \uv_async_send($async->threads[$tid]);
-        \usleep(70500);
+        \usleep($async->count());
       }
     }, function () {
     });
@@ -165,8 +137,9 @@ final class Thread
     if (isset($this->status[$tid])) {
       $this->status[$tid] = ['cancelled'];
       $this->exception[$tid] = new \RuntimeException(\sprintf('Thread %s cancelled!', (string)$tid));
-      if (isset($this->threads[$tid]) && $this->threads[$tid] instanceof \UVAsync && \uv_is_active($this->threads[$tid]))
+      if (isset($this->threads[$tid]) && $this->threads[$tid] instanceof \UVAsync && \uv_is_active($this->threads[$tid])) {
         \uv_async_send($this->threads[$tid]);
+      }
     }
 
     \mutex_unlock($lock);
@@ -182,9 +155,7 @@ final class Thread
   public function join($tid = null): void
   {
     $isCoroutine = $this->hasLoop && \is_object($this->loop) && \method_exists($this->loop, 'futureOn') && \method_exists($this->loop, 'futureOff');
-    $isCancelling = !empty($tid) && $this->isCancelled($tid) && !$this->isEmpty() && \uv_is_active($this->threads[$tid]);
-    while (!empty($tid) ? $this->isRunning($tid) && \uv_is_active($this->threads[$tid]) : $this->count() > 0) {
-
+    while (!\is_null($tid) ? $this->isRunning($tid) : $this->count() > 0) {
       if ($isCoroutine) { // @codeCoverageIgnoreStart
         $this->loop->futureOn();
         $this->loop->run();
@@ -192,18 +163,8 @@ final class Thread
       } elseif ($this->hasLoop) {
         $this->loop->run(); // @codeCoverageIgnoreEnd
       } else {
-        if (!\is_null($tid))
-          $mode = \UV::RUN_ONCE;
-        elseif ($this->count() === 1)
-          $mode = \UV::RUN_DEFAULT;
-        else
-          $mode = \UV::RUN_NOWAIT;
-
-        \uv_run(self::$uv, $mode);
+        \uv_run($this->uv, (\is_null($tid) ? \UV::RUN_NOWAIT : \UV::RUN_ONCE));
       }
-
-      if ($isCancelling)
-        break;
     }
   }
 
@@ -215,8 +176,7 @@ final class Thread
    */
   protected function handlers($tid): void
   {
-    if ($this->isRunning($tid)) {
-    } elseif ($this->isSuccessful($tid)) {
+    if ($this->isSuccessful($tid)) {
       $this->remove($tid);
       if ($this->hasLoop) // @codeCoverageIgnoreStart
         $this->loop->executeTask($this->success, $tid);
@@ -224,7 +184,7 @@ final class Thread
         $this->yieldAsFinished($tid);  // @codeCoverageIgnoreEnd
       else
         $this->triggerSuccess($tid);
-    } elseif ($this->isTerminated($tid) || $this->isCancelled($tid)) {
+    } else {
       $this->remove($tid);
       if ($this->hasLoop)  // @codeCoverageIgnoreStart
         $this->loop->executeTask($this->failed, $tid);
