@@ -102,6 +102,7 @@ final class Thread
       $this->threads[$tid] = \uv_async_init($this->uv, function () use ($tid) {
         $this->handlers($tid);
       });
+    \mutex_unlock($lock);
 
     \uv_queue_work($this->uv, function () use (&$async, &$task, $tid, &$args) {
       try {
@@ -116,11 +117,10 @@ final class Thread
 
       if (isset($async->threads[$tid]) && $async->threads[$tid] instanceof \UVAsync && \uv_is_active($async->threads[$tid])) {
         \uv_async_send($async->threads[$tid]);
-        \usleep($async->count());
+        \usleep(7000);
       }
     }, function () {
     });
-    \mutex_unlock($lock);
 
     return new TWorker($this, $tid);
   }
@@ -133,16 +133,15 @@ final class Thread
    */
   public function cancel($tid = null): void
   {
-    $lock = \mutex_lock();
     if (isset($this->status[$tid])) {
+      $lock = \mutex_lock();
       $this->status[$tid] = ['cancelled'];
       $this->exception[$tid] = new \RuntimeException(\sprintf('Thread %s cancelled!', (string)$tid));
+      \mutex_unlock($lock);
       if (isset($this->threads[$tid]) && $this->threads[$tid] instanceof \UVAsync && \uv_is_active($this->threads[$tid])) {
         \uv_async_send($this->threads[$tid]);
       }
     }
-
-    \mutex_unlock($lock);
   }
 
   /**
