@@ -54,31 +54,22 @@ final class Thread
 
   public function __destruct()
   {
-    if (!$this->isClosed)
-      $this->close();
+    if (!\is_null($this->threads)) {
+      $this->successCallbacks = null;
+      $this->errorCallbacks = null;
+      $this->success = null;
+      $this->failed = null;
+      $this->loop = null;
+      $this->isYield = false;
+      $this->isClosed = true;
+      $this->threads = null;
+    }
 
     if (!$this->hasLoop && self::$uv instanceof \UVLoop) {
       $loop = self::$uv;
       self::$uv = null;
       @\uv_stop($loop);
       @\uv_run($loop);
-    }
-
-    if (!\is_null($this->threads)) {
-      $this->successCallbacks = [];
-      $this->errorCallbacks = [];
-      $this->threads = null;
-    }
-  }
-
-  public function close()
-  {
-    if (!$this->isClosed) {
-      $this->success = null;
-      $this->failed = null;
-      $this->loop = null;
-      $this->isYield = false;
-      $this->isClosed = true;
     }
   }
 
@@ -456,18 +447,12 @@ final class Thread
    */
   protected function remove($tid): void
   {
-    $lock = \mutex_lock();
-    if (isset($this->threads[$tid]) && $this->threads[$tid] instanceof \UVAsync)
+    if (isset($this->threads[$tid]) && $this->threads[$tid] instanceof \UVAsync) {
       \uv_close($this->threads[$tid]);
-
-    if (isset($this->status[$tid])) {
-      if (\is_array($this->status[$tid]))
-        unset($this->threads[$tid]);
-      else
-        unset($this->threads[$tid], $this->status[$tid]);
+      $lock = \mutex_lock();
+      unset($this->threads[$tid]);
+      \mutex_unlock($lock);
     }
-
-    \mutex_unlock($lock);
   }
 
   public function yieldAsFinished($tid)

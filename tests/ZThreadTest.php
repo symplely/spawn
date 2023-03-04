@@ -70,7 +70,6 @@ class ZThreadTest extends TestCase
         $thread->join(44);
         $this->assertInstanceOf(\RuntimeException::class, $thread->getException(44));
 
-        $thread->close();
         $this->assertCount(1, $thread->getFailed());
     }
 }
