@@ -1,7 +1,11 @@
 # GitHub Action for PHP with extensions
 name: macOS
 
-on: [push, pull_request]
+on:
+  push:
+    branches: [ 5x ]
+  pull_request:
+    branches: [ 5x ]
 
 jobs:
   macos:
