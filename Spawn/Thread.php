@@ -148,7 +148,7 @@ final class Thread
       if (isset($async->threads[$tid]) && $async->threads[$tid] instanceof \UVAsync && \uv_is_active($async->threads[$tid])) {
         \uv_async_send($async->threads[$tid]);
         do {
-          \usleep($async->count() * 7000);
+          \usleep($async->count() * 35000);
         } while (!$async->releaseQueue);
       }
     }, function () {
