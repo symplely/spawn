@@ -58,17 +58,14 @@ final class Thread
       $this->close();
 
     if (!$this->hasLoop && self::$uv instanceof \UVLoop) {
-      $loop = self::$uv;
+      @\uv_stop(self::$uv);
+      @\uv_run(self::$uv);
       self::$uv = null;
-      @\uv_stop($loop);
-      @\uv_run($loop);
     }
 
-    if (!\is_null($this->threads)) {
-      $this->successCallbacks = [];
-      $this->errorCallbacks = [];
-      $this->threads = null;
-    }
+    $this->successCallbacks = [];
+    $this->errorCallbacks = [];
+    $this->threads = null;
   }
 
   public function close()
@@ -88,12 +85,11 @@ final class Thread
    * @param \UVLoop|null $uv
    * @param boolean $yielding
    */
-  public function __construct(object $loop = null, bool $yielding = false)
+  public function __construct($loop = null, ?\UVLoop $uv = null, bool $yielding = false)
   {
     if (!\IS_THREADED_UV)
       throw new \InvalidArgumentException('This `Thread` class requires PHP `ZTS` and the libuv `ext-uv` extension!');
 
-    $uv = null;
     $lock = \mutex_lock();
     $this->isYield = $yielding;
     $this->hasLoop = \is_object($loop) && \method_exists($loop, 'executeTask') && \method_exists($loop, 'run');
@@ -106,7 +102,7 @@ final class Thread
     }
 
     $uvLoop = $uv instanceof \UVLoop ? $uv : self::$uv;
-    self::$uv = $uvLoop instanceof \UVLoop ? $uvLoop : \uv_loop_new();
+    self::$uv = $uvLoop instanceof \UVLoop ? $uvLoop : \uv_default_loop();
     $this->success = $this->isYield ? [$this, 'yieldAsFinished'] : [$this, 'triggerSuccess'];
     $this->failed = $this->isYield ? [$this, 'yieldAsFailed'] : [$this, 'triggerError'];
     \mutex_unlock($lock);
@@ -217,21 +213,21 @@ final class Thread
   {
     if ($this->isRunning($tid)) {
     } elseif ($this->isSuccessful($tid)) {
-      $this->remove($tid);
       if ($this->hasLoop) // @codeCoverageIgnoreStart
         $this->loop->executeTask($this->success, $tid);
       elseif ($this->isYield)
         $this->yieldAsFinished($tid);  // @codeCoverageIgnoreEnd
       else
         $this->triggerSuccess($tid);
-    } elseif ($this->isTerminated($tid) || $this->isCancelled($tid)) {
       $this->remove($tid);
+    } elseif ($this->isTerminated($tid) || $this->isCancelled($tid)) {
       if ($this->hasLoop)  // @codeCoverageIgnoreStart
         $this->loop->executeTask($this->failed, $tid);
       elseif ($this->isYield)
         $this->yieldAsFailed($tid);  // @codeCoverageIgnoreEnd
       else
         $this->triggerError($tid);
+      $this->remove($tid);
     }
   }
 
